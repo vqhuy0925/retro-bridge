@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
 
+/** 4-digit numeric code — short enough to read aloud or type in when a link can't be opened. */
 function generateRoomCode(): string {
-  return Math.random().toString(36).slice(2, 8) + Math.random().toString(36).slice(2, 5);
+  return String(Math.floor(1000 + Math.random() * 9000));
 }
 
 export interface RoomController {
   /** The active room code, or null until one is created (fresh visit, no `?room=` link). */
   roomId: string | null;
-  /** Mints a fresh room code, pushes it into the URL, and switches the app to it. */
-  startRoom: () => string;
+  /** Mints a fresh room code (or switches to a given one), pushes it into the URL. */
+  startRoom: (code?: string) => string;
 }
 
 /** Reads the `room` query param; null means no room has been created/joined yet. */
@@ -27,13 +28,13 @@ export function useRoom(): RoomController {
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
-  function startRoom(): string {
-    const created = generateRoomCode();
+  function startRoom(code?: string): string {
+    const target = code || generateRoomCode();
     const url = new URL(window.location.href);
-    url.searchParams.set('room', created);
+    url.searchParams.set('room', target);
     window.history.pushState({}, '', url.toString());
-    setRoomId(created);
-    return created;
+    setRoomId(target);
+    return target;
   }
 
   return { roomId, startRoom };

@@ -44,6 +44,11 @@ export default function App() {
     setShowNewRetroModal(false);
   }
 
+  function handleJoinRoom(code: string) {
+    startRoom(code);
+    setShowNewRetroModal(false);
+  }
+
   useEffect(() => {
     if (!store || !pendingTitle) return;
     const title = pendingTitle;
@@ -72,7 +77,7 @@ export default function App() {
   if (!roomId) {
     return (
       <>
-        <NewRetroModal onCreate={handleCreateRetro} />
+        <NewRetroModal onCreate={handleCreateRetro} onJoin={handleJoinRoom} />
         <ToastHost />
       </>
     );
@@ -105,7 +110,11 @@ export default function App() {
       />
 
       {showNewRetroModal && (
-        <NewRetroModal onCreate={handleCreateRetro} onCancel={() => setShowNewRetroModal(false)} />
+        <NewRetroModal
+          onCreate={handleCreateRetro}
+          onJoin={handleJoinRoom}
+          onCancel={() => setShowNewRetroModal(false)}
+        />
       )}
 
       <Tabs active={tab} onChange={setTab} />
