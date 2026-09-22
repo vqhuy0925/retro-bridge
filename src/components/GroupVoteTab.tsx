@@ -152,7 +152,7 @@ export function GroupVoteTab({
     <section>
       <div className="mb-3.5 flex flex-wrap items-end justify-between gap-2.5">
         <div>
-          <h2 className="text-2xl">Group & Vote — Round 2</h2>
+          <h2 className="text-2xl">Group & Vote</h2>
           <p className="mt-0.5 text-base text-ink-soft">
             Cluster notes that share an idea, then vote on what to discuss first.
           </p>

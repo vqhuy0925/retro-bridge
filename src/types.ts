@@ -15,6 +15,8 @@ export interface RetroConfig {
   voteBudget?: number;
   /** Room code of the retro this one follows on from, for the "previous retro" carry-over panel. */
   previousRoomId?: string;
+  /** A short, host-editable brief on what today's topic is about, shown on the Current Topic tab. */
+  topicBrief?: string;
 }
 
 export interface WarmupGame {

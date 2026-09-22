@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { Camera, ChevronLeft, ChevronRight, Settings, X } from 'lucide-react';
+import { Camera, ChevronLeft, ChevronRight, Pencil, Settings, X } from 'lucide-react';
 import { NoteCard } from './NoteCard';
 import { Modal } from './Modal';
 import { TimerWidget } from './TimerWidget';
@@ -43,8 +43,22 @@ export function BoardTab({
   // top-level "Snap / upload board photo" button (reference photo only, no AI).
   const [captureColumn, setCaptureColumn] = useState<Column | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [editingBrief, setEditingBrief] = useState(false);
+  const [draftBrief, setDraftBrief] = useState(config.topicBrief || '');
 
   const sortedPhotos = useMemo(() => [...photos].sort((a, b) => b.createdAt - a.createdAt), [photos]);
+
+  function startEditingBrief() {
+    setDraftBrief(config.topicBrief || '');
+    setEditingBrief(true);
+  }
+
+  function commitBrief() {
+    setEditingBrief(false);
+    const next = draftBrief.trim();
+    if (next === (config.topicBrief || '')) return;
+    configDoc.update({ topicBrief: next });
+  }
 
   function submitNote(columnId: string) {
     const text = (draft[columnId] || '').trim();
@@ -106,10 +120,36 @@ export function BoardTab({
   return (
     <section>
       <div className="mb-3.5">
-        <h2 className="text-2xl">Shared Board — Round 1</h2>
-        <p className="mt-0.5 text-base text-ink-soft">
-          Type notes directly, or snap a close-up photo of each column's sticky notes and let AI read them in.
-        </p>
+        <h2 className="text-2xl">Current Topic</h2>
+        {editingBrief ? (
+          <input
+            type="text"
+            autoFocus
+            value={draftBrief}
+            onChange={(e) => setDraftBrief(e.target.value)}
+            onBlur={commitBrief}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+              if (e.key === 'Escape') {
+                setDraftBrief(config.topicBrief || '');
+                setEditingBrief(false);
+              }
+            }}
+            placeholder="What's today's topic about?"
+            className="mt-0.5 w-full max-w-xl border-b border-brand bg-transparent py-0.5 text-base text-ink outline-none"
+          />
+        ) : (
+          <button
+            onClick={startEditingBrief}
+            className="group mt-0.5 flex min-w-0 items-center gap-1.5 text-left"
+            aria-label="Edit topic brief"
+          >
+            <p className={`truncate text-base ${config.topicBrief ? 'text-ink-soft' : 'text-ink-faint italic'}`}>
+              {config.topicBrief || "Add a brief about today's topic…"}
+            </p>
+            <Pencil size={13} className="shrink-0 text-ink-faint opacity-0 group-hover:opacity-100" />
+          </button>
+        )}
       </div>
 
       <div className="mb-4">
