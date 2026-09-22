@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react';
-import { Camera, Settings, X } from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
+import { Camera, ChevronLeft, ChevronRight, Settings, X } from 'lucide-react';
 import { NoteCard } from './NoteCard';
 import { Modal } from './Modal';
 import { dismissToast, showToast } from '../hooks/useToast';
@@ -26,6 +26,8 @@ export function BoardTab({ config, configDoc, notes, notesCol, photos, photosCol
   const [viewingPhoto, setViewingPhoto] = useState<BoardPhoto | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const sortedPhotos = useMemo(() => [...photos].sort((a, b) => b.createdAt - a.createdAt), [photos]);
 
   function submitNote(columnId: string) {
     const text = (draft[columnId] || '').trim();
@@ -131,32 +133,32 @@ export function BoardTab({ config, configDoc, notes, notesCol, photos, photosCol
         </button>
       </div>
 
-      {photos.length > 0 && (
-        <div className="mb-4">
-          <h3 className="mb-2 text-sm font-semibold text-ink-soft">
-            Uploaded board photos ({photos.length})
-          </h3>
-          <div className="flex flex-wrap gap-2.5">
-            {[...photos]
-              .sort((a, b) => b.createdAt - a.createdAt)
-              .map((p) => (
-                <div key={p.id} className="group relative">
-                  <button
-                    onClick={() => setViewingPhoto(p)}
-                    title={`${p.author} (${p.role === 'po' ? 'PO' : 'Team'}) — ${new Date(p.createdAt).toLocaleString()}`}
-                    className="block h-20 w-20 overflow-hidden rounded-lg border border-line"
-                  >
-                    <img src={p.dataUrl} alt={`Board photo by ${p.author}`} className="h-full w-full object-cover" />
-                  </button>
+      {sortedPhotos.length > 0 && (
+        <div className="mb-5">
+          <h3 className="mb-2 text-sm font-semibold text-ink-soft">Board photos ({sortedPhotos.length})</h3>
+          <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
+            {sortedPhotos.map((p) => (
+              <div key={p.id} className="w-44 shrink-0 snap-start">
+                <button
+                  onClick={() => setViewingPhoto(p)}
+                  className="block aspect-[4/3] w-full overflow-hidden rounded-xl border border-line bg-line-soft"
+                >
+                  <img src={p.dataUrl} alt={`Board photo by ${p.author}`} className="h-full w-full object-cover" />
+                </button>
+                <div className="mt-1.5 flex items-center justify-between gap-1.5">
+                  <span className="min-w-0 truncate text-xs text-ink-faint">
+                    {p.author} · {p.role === 'po' ? 'PO' : 'Team'}
+                  </span>
                   <button
                     onClick={() => photosCol.remove(p.id)}
-                    title="Remove photo"
-                    className="absolute -right-1.5 -top-1.5 hidden h-5 w-5 items-center justify-center rounded-full bg-danger text-white group-hover:flex"
+                    aria-label="Remove photo"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink-faint hover:bg-line-soft hover:text-danger"
                   >
-                    <X size={11} />
+                    <X size={15} />
                   </button>
                 </div>
-              ))}
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -251,16 +253,42 @@ export function BoardTab({ config, configDoc, notes, notesCol, photos, photosCol
         </Modal>
       )}
 
-      {viewingPhoto && (
-        <Modal
-          title={`Photo by ${viewingPhoto.author}`}
-          subtitle={`${viewingPhoto.role === 'po' ? 'PO' : 'Team'} · ${new Date(viewingPhoto.createdAt).toLocaleString()}`}
-          onDismiss={() => setViewingPhoto(null)}
-          actions={[{ label: 'Close', onClick: () => setViewingPhoto(null) }]}
-        >
-          <img src={viewingPhoto.dataUrl} alt="Board photo" className="w-full rounded-lg" />
-        </Modal>
-      )}
+      {viewingPhoto &&
+        (() => {
+          const idx = sortedPhotos.findIndex((p) => p.id === viewingPhoto.id);
+          const prevPhoto = idx > 0 ? sortedPhotos[idx - 1] : null;
+          const nextPhoto = idx >= 0 && idx < sortedPhotos.length - 1 ? sortedPhotos[idx + 1] : null;
+          return (
+            <Modal
+              title={`Photo by ${viewingPhoto.author}`}
+              subtitle={`${viewingPhoto.role === 'po' ? 'PO' : 'Team'} · ${new Date(viewingPhoto.createdAt).toLocaleString()}${sortedPhotos.length > 1 ? ` · ${idx + 1} of ${sortedPhotos.length}` : ''}`}
+              onDismiss={() => setViewingPhoto(null)}
+              actions={[{ label: 'Close', onClick: () => setViewingPhoto(null) }]}
+            >
+              <div className="relative">
+                <img src={viewingPhoto.dataUrl} alt="Board photo" className="w-full rounded-lg" />
+                {prevPhoto && (
+                  <button
+                    onClick={() => setViewingPhoto(prevPhoto)}
+                    aria-label="Previous photo"
+                    className="absolute left-1.5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white hover:bg-black/60"
+                  >
+                    <ChevronLeft size={19} />
+                  </button>
+                )}
+                {nextPhoto && (
+                  <button
+                    onClick={() => setViewingPhoto(nextPhoto)}
+                    aria-label="Next photo"
+                    className="absolute right-1.5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white hover:bg-black/60"
+                  >
+                    <ChevronRight size={19} />
+                  </button>
+                )}
+              </div>
+            </Modal>
+          );
+        })()}
 
       {reviewRows && (
         <NoteReviewModal
