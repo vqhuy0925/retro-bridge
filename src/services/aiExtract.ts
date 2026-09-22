@@ -167,7 +167,13 @@ export async function extractGroupsFromPhoto(
   return groups;
 }
 
-export function aiErrorCopy(code: string): string {
+// `message` is the specific reason the server sent back (e.g. which
+// Gemini quota was hit) — worth surfacing as-is for 'server' errors since
+// it tells the user whether to just retry or wait out a quota. The other
+// codes are raised client-side with a generic message that isn't worth
+// showing verbatim, so they keep their friendlier fixed copy.
+export function aiErrorCopy(code: string, message?: string): string {
+  if (code === 'server' && message) return message;
   const map: Record<string, string> = {
     network: "Could not reach the AI service — check your connection.",
     server: 'The AI service could not process that photo. Try a clearer one.',

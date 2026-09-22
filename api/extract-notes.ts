@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, GoogleGenerativeAIFetchError } from '@google/generative-ai';
+import type { GenerativeModel } from '@google/generative-ai';
 
 interface ColumnInput {
   id: string;
@@ -57,6 +58,27 @@ function parseJsonLoose(text: string): unknown {
   throw new Error('Could not parse a JSON value from the model response.');
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Gemini's free tier returns 503 ("high demand") or 429 (rate limit)
+// fairly often — both are transient, so retry once with a short backoff
+// before giving up, instead of failing the whole photo capture outright.
+async function generateWithRetry(
+  model: GenerativeModel,
+  parts: Parameters<GenerativeModel['generateContent']>[0],
+): Promise<ReturnType<GenerativeModel['generateContent']>> {
+  try {
+    return await model.generateContent(parts);
+  } catch (err) {
+    const status = err instanceof GoogleGenerativeAIFetchError ? err.status : undefined;
+    if (status !== 503 && status !== 429) throw err;
+    await sleep(1500);
+    return model.generateContent(parts);
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (req.method !== 'POST') {
     res.status(405).json({ ok: false, error: 'Method not allowed.' });
@@ -81,7 +103,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
     const prompt = buildPrompt(body.mode, columns);
 
-    const result = await model.generateContent([
+    const result = await generateWithRetry(model, [
       { text: prompt },
       { inlineData: { data: body.imageBase64, mimeType: body.mimeType } },
     ]);
@@ -115,6 +137,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     }
   } catch (err) {
     console.error('extract-notes failed', err);
-    res.status(200).json({ ok: false, error: 'The AI service could not process that photo.' });
+    const status = err instanceof GoogleGenerativeAIFetchError ? err.status : undefined;
+    const message =
+      status === 503
+        ? "Gemini is at capacity right now (high demand on the free tier) — wait a few seconds and try again."
+        : status === 429
+          ? 'Gemini rate limit reached for now — wait a bit before trying another photo.'
+          : 'The AI service could not process that photo.';
+    res.status(200).json({ ok: false, error: message });
   }
 }

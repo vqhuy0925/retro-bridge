@@ -69,7 +69,7 @@ export function GroupVoteTab({
       else setReviewGroups(extracted);
     } catch (err) {
       const code = err instanceof AiExtractError ? err.code : 'unknown';
-      showToast(aiErrorCopy(code));
+      showToast(aiErrorCopy(code, err instanceof AiExtractError ? err.message : undefined));
     } finally {
       setAnalyzing(false);
       dismissToast(analyzingToast);
