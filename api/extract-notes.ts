@@ -62,9 +62,11 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// Gemini's free tier returns 503 ("high demand") or 429 (rate limit)
-// fairly often — both are transient, so retry once with a short backoff
-// before giving up, instead of failing the whole photo capture outright.
+// Only retry a 503 ("high demand") — that's transient server-side load and
+// often clears within a couple seconds. A 429 (rate limit) means the
+// per-minute/per-day quota is used up; retrying seconds later almost always
+// hits the same 429 again since that window hasn't reset, so it would just
+// burn a second request against an already-exhausted quota for nothing.
 async function generateWithRetry(
   model: GenerativeModel,
   parts: Parameters<GenerativeModel['generateContent']>[0],
@@ -73,7 +75,7 @@ async function generateWithRetry(
     return await model.generateContent(parts);
   } catch (err) {
     const status = err instanceof GoogleGenerativeAIFetchError ? err.status : undefined;
-    if (status !== 503 && status !== 429) throw err;
+    if (status !== 503) throw err;
     await sleep(1500);
     return model.generateContent(parts);
   }
