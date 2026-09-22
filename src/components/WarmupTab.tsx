@@ -24,8 +24,6 @@ export function WarmupTab({ warmup, warmupDoc, timer, timerDoc, previous }: Warm
 
   return (
     <section>
-      {previous && <PreviousRetroPanel previous={previous} />}
-
       <div className="mb-3.5 flex flex-wrap items-end justify-between gap-2.5">
         <div>
           <h2 className="text-xl">Warm-up</h2>
@@ -66,7 +64,6 @@ export function WarmupTab({ warmup, warmupDoc, timer, timerDoc, previous }: Warm
                 <h3 className="text-base font-semibold">{g.title}</h3>
               </div>
               <p className="mb-2.5 text-sm leading-snug text-ink-soft">{g.instruction}</p>
-              <p className="mb-2.5 text-[12.5px] italic leading-snug text-ink-faint">e.g. {g.example}</p>
               <div className="text-[11.5px] text-ink-faint">{g.duration}</div>
             </div>
           );
@@ -91,6 +88,12 @@ export function WarmupTab({ warmup, warmupDoc, timer, timerDoc, previous }: Warm
             <span className="not-italic font-semibold text-ink-faint">Example — </span>
             {current.example}
           </p>
+        </div>
+      )}
+
+      {previous && (
+        <div className="mt-8">
+          <PreviousRetroPanel previous={previous} />
         </div>
       )}
     </section>
