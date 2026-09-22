@@ -1,26 +1,29 @@
 import { useRef, useState } from 'react';
-import { Camera, Settings } from 'lucide-react';
+import { Camera, Settings, X } from 'lucide-react';
 import { NoteCard } from './NoteCard';
 import { Modal } from './Modal';
 import { dismissToast, showToast } from '../hooks/useToast';
-import { aiErrorCopy, extractNotesFromPhoto, AiExtractError } from '../services/aiExtract';
+import { aiErrorCopy, createPhotoThumbnail, extractNotesFromPhoto, AiExtractError } from '../services/aiExtract';
 import type { CollectionStore, DocStore } from '../services/store';
-import type { Column, ExtractedNoteRow, Note, RetroConfig, Role } from '../types';
+import type { BoardPhoto, Column, ExtractedNoteRow, Note, RetroConfig, Role } from '../types';
 
 interface BoardTabProps {
   config: RetroConfig;
   configDoc: DocStore<RetroConfig>;
   notes: Note[];
   notesCol: CollectionStore<Note>;
+  photos: BoardPhoto[];
+  photosCol: CollectionStore<BoardPhoto>;
   role: Role;
   author: string;
 }
 
-export function BoardTab({ config, configDoc, notes, notesCol, role, author }: BoardTabProps) {
+export function BoardTab({ config, configDoc, notes, notesCol, photos, photosCol, role, author }: BoardTabProps) {
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [editingColumns, setEditingColumns] = useState(false);
   const [reviewRows, setReviewRows] = useState<ExtractedNoteRow[] | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [viewingPhoto, setViewingPhoto] = useState<BoardPhoto | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function submitNote(columnId: string) {
@@ -41,6 +44,15 @@ export function BoardTab({ config, configDoc, notes, notesCol, role, author }: B
   async function handlePhoto(file: File) {
     setAnalyzing(true);
     const analyzingToast = showToast('Analyzing photo…', true);
+
+    // Save the photo itself so the PO / remote team can see the physical
+    // board too — independent of note extraction, so it still shows up
+    // even if that fails.
+    createPhotoThumbnail(file).then((dataUrl) => {
+      if (!dataUrl) return;
+      photosCol.add({ dataUrl, role, author, createdAt: Date.now() });
+    });
+
     try {
       const rows = await extractNotesFromPhoto(file, config.columns);
       if (!rows.length) {
@@ -95,6 +107,36 @@ export function BoardTab({ config, configDoc, notes, notesCol, role, author }: B
           Rename columns
         </button>
       </div>
+
+      {photos.length > 0 && (
+        <div className="mb-4">
+          <h3 className="mb-2 text-sm font-semibold text-ink-soft">
+            Uploaded board photos ({photos.length})
+          </h3>
+          <div className="flex flex-wrap gap-2.5">
+            {[...photos]
+              .sort((a, b) => b.createdAt - a.createdAt)
+              .map((p) => (
+                <div key={p.id} className="group relative">
+                  <button
+                    onClick={() => setViewingPhoto(p)}
+                    title={`${p.author} (${p.role === 'po' ? 'PO' : 'Team'}) — ${new Date(p.createdAt).toLocaleString()}`}
+                    className="block h-20 w-20 overflow-hidden rounded-lg border border-line"
+                  >
+                    <img src={p.dataUrl} alt={`Board photo by ${p.author}`} className="h-full w-full object-cover" />
+                  </button>
+                  <button
+                    onClick={() => photosCol.remove(p.id)}
+                    title="Remove photo"
+                    className="absolute -right-1.5 -top-1.5 hidden h-5 w-5 items-center justify-center rounded-full bg-danger text-white group-hover:flex"
+                  >
+                    <X size={11} />
+                  </button>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] items-start gap-4">
         {config.columns.map((col) => {
@@ -156,6 +198,17 @@ export function BoardTab({ config, configDoc, notes, notesCol, role, author }: B
           onSave={(columns) => configDoc.update({ columns })}
           onClose={() => setEditingColumns(false)}
         />
+      )}
+
+      {viewingPhoto && (
+        <Modal
+          title={`Photo by ${viewingPhoto.author}`}
+          subtitle={`${viewingPhoto.role === 'po' ? 'PO' : 'Team'} · ${new Date(viewingPhoto.createdAt).toLocaleString()}`}
+          onDismiss={() => setViewingPhoto(null)}
+          actions={[{ label: 'Close', onClick: () => setViewingPhoto(null) }]}
+        >
+          <img src={viewingPhoto.dataUrl} alt="Board photo" className="w-full rounded-lg" />
+        </Modal>
       )}
 
       {reviewRows && (

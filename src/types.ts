@@ -25,6 +25,14 @@ export interface WarmupState {
 
 export type NoteSource = 'manual' | 'photo';
 
+export interface BoardPhoto {
+  id: string;
+  dataUrl: string;
+  role: Role;
+  author: string;
+  createdAt: number;
+}
+
 export interface Note {
   id: string;
   text: string;

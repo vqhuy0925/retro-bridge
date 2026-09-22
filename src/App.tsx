@@ -14,7 +14,7 @@ import { useStoreCollection } from './hooks/useStoreCollection';
 import { ensureAnonymousUser } from './services/firebase/authService';
 import { createRetroStore } from './services/store';
 import { DEFAULT_COLUMNS } from './data/defaults';
-import type { ActionItem, Group, Note, RetroConfig, TabId, Vote, WarmupState } from './types';
+import type { ActionItem, BoardPhoto, Group, Note, RetroConfig, TabId, Vote, WarmupState } from './types';
 
 export default function App() {
   const roomId = useRoom();
@@ -43,6 +43,7 @@ export default function App() {
   const config = useStoreDoc<RetroConfig>(store, 'config', defaultConfig);
   const warmup = useStoreDoc<WarmupState | { gameId: '' }>(store, 'warmup', { gameId: '' });
   const notes = useStoreCollection<Note>(store, 'notes');
+  const photos = useStoreCollection<BoardPhoto>(store, 'photos');
   const groups = useStoreCollection<Group>(store, 'groups');
   const votes = useStoreCollection<Vote>(store, 'votes');
   const actions = useStoreCollection<ActionItem>(store, 'actions');
@@ -56,6 +57,7 @@ export default function App() {
   const configDoc = store.doc<RetroConfig>('config');
   const warmupDoc = store.doc<WarmupState>('warmup');
   const notesCol = store.collection<Note>('notes');
+  const photosCol = store.collection<BoardPhoto>('photos');
   const groupsCol = store.collection<Group>('groups');
   const votesCol = store.collection<Vote>('votes');
   const actionsCol = store.collection<ActionItem>('actions');
@@ -77,6 +79,8 @@ export default function App() {
           configDoc={configDoc}
           notes={notes}
           notesCol={notesCol}
+          photos={photos}
+          photosCol={photosCol}
           role={role}
           author={displayName}
         />
