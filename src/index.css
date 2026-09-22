@@ -70,3 +70,16 @@ h3 {
 ::selection {
   background: var(--brand-wash);
 }
+
+/* iOS Safari/WKWebView auto-zooms the whole page when a focused input's
+   font-size is under 16px, and doesn't reliably zoom back out — this is
+   what made the "join by code" screen and the header appear zoomed/cut off
+   on iPhone. Force 16px on form fields, scoped to iOS via feature-detect so
+   the smaller Tailwind text sizes are untouched everywhere else. */
+@supports (-webkit-touch-callout: none) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
