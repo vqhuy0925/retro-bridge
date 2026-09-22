@@ -12,11 +12,22 @@ import { useRoom } from './hooks/useRoom';
 import { useIdentity } from './hooks/useIdentity';
 import { useStoreDoc } from './hooks/useStoreDoc';
 import { useStoreCollection } from './hooks/useStoreCollection';
+import { usePreviousRetro } from './hooks/usePreviousRetro';
 import { showToast } from './hooks/useToast';
 import { ensureAnonymousUser } from './services/firebase/authService';
 import { createRetroStore } from './services/store';
-import { DEFAULT_COLUMNS } from './data/defaults';
-import type { ActionItem, BoardPhoto, Group, Note, RetroConfig, TabId, Vote, WarmupState } from './types';
+import { DEFAULT_COLUMNS, VOTE_BUDGET } from './data/defaults';
+import type {
+  ActionItem,
+  BoardPhoto,
+  Group,
+  Note,
+  RetroConfig,
+  TabId,
+  TimerState,
+  Vote,
+  WarmupState,
+} from './types';
 
 export default function App() {
   const { roomId, startRoom } = useRoom();
@@ -24,6 +35,7 @@ export default function App() {
   const [authResolved, setAuthResolved] = useState(false);
   const [tab, setTab] = useState<TabId>('warmup');
   const [pendingTitle, setPendingTitle] = useState<string | null>(null);
+  const [pendingPreviousRoomId, setPendingPreviousRoomId] = useState<string | null>(null);
   const [showNewRetroModal, setShowNewRetroModal] = useState(false);
 
   useEffect(() => {
@@ -38,8 +50,9 @@ export default function App() {
     [roomId, user, authResolved],
   );
 
-  function handleCreateRetro(topic: string) {
+  function handleCreateRetro(topic: string, previousRoomId?: string) {
     setPendingTitle(topic);
+    setPendingPreviousRoomId(previousRoomId || null);
     startRoom();
     setShowNewRetroModal(false);
   }
@@ -52,13 +65,17 @@ export default function App() {
   useEffect(() => {
     if (!store || !pendingTitle) return;
     const title = pendingTitle;
+    const previousRoomId = pendingPreviousRoomId || undefined;
     setPendingTitle(null);
+    setPendingPreviousRoomId(null);
+    const cfg: RetroConfig = { title, columns: DEFAULT_COLUMNS, voteBudget: VOTE_BUDGET };
+    if (previousRoomId) cfg.previousRoomId = previousRoomId;
     store
       .doc<RetroConfig>('config')
-      .set({ title, columns: DEFAULT_COLUMNS })
+      .set(cfg)
       .then(() => navigator.clipboard?.writeText(window.location.href).catch(() => {}))
       .then(() => showToast(`"${title}" is ready — invite link copied, share it with your PO and team.`));
-  }, [store, pendingTitle]);
+  }, [store, pendingTitle, pendingPreviousRoomId]);
 
   const { role, setRole, displayName, voterId } = useIdentity(user);
 
@@ -68,11 +85,13 @@ export default function App() {
   );
   const config = useStoreDoc<RetroConfig>(store, 'config', defaultConfig);
   const warmup = useStoreDoc<WarmupState | { gameId: '' }>(store, 'warmup', { gameId: '' });
+  const timer = useStoreDoc<TimerState>(store, 'timer', { label: '', durationSec: 0, endsAt: null });
   const notes = useStoreCollection<Note>(store, 'notes');
   const photos = useStoreCollection<BoardPhoto>(store, 'photos');
   const groups = useStoreCollection<Group>(store, 'groups');
   const votes = useStoreCollection<Vote>(store, 'votes');
   const actions = useStoreCollection<ActionItem>(store, 'actions');
+  const previous = usePreviousRetro(config.previousRoomId, user);
 
   if (!roomId) {
     return (
@@ -91,6 +110,7 @@ export default function App() {
 
   const configDoc = store.doc<RetroConfig>('config');
   const warmupDoc = store.doc<WarmupState>('warmup');
+  const timerDoc = store.doc<TimerState>('timer');
   const notesCol = store.collection<Note>('notes');
   const photosCol = store.collection<BoardPhoto>('photos');
   const groupsCol = store.collection<Group>('groups');
@@ -120,7 +140,13 @@ export default function App() {
       <Tabs active={tab} onChange={setTab} />
 
       {tab === 'warmup' && (
-        <WarmupTab warmup={warmup.gameId ? (warmup as WarmupState) : null} warmupDoc={warmupDoc} />
+        <WarmupTab
+          warmup={warmup.gameId ? (warmup as WarmupState) : null}
+          warmupDoc={warmupDoc}
+          timer={timer}
+          timerDoc={timerDoc}
+          previous={previous}
+        />
       )}
       {tab === 'board' && (
         <BoardTab
@@ -132,6 +158,8 @@ export default function App() {
           photosCol={photosCol}
           role={role}
           author={displayName}
+          timer={timer}
+          timerDoc={timerDoc}
         />
       )}
       {tab === 'group' && (
@@ -146,6 +174,8 @@ export default function App() {
           voterId={voterId}
           voterName={displayName}
           role={role}
+          voteBudget={safeConfig.voteBudget ?? VOTE_BUDGET}
+          onVoteBudgetChange={(n) => configDoc.update({ voteBudget: n })}
         />
       )}
       {tab === 'wrap' && (

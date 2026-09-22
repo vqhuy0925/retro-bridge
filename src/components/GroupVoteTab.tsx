@@ -1,7 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { Camera, Minus, Plus, X } from 'lucide-react';
 import { Modal } from './Modal';
-import { VOTE_BUDGET } from '../data/defaults';
 import { dismissToast, showToast } from '../hooks/useToast';
 import { AiExtractError, aiErrorCopy, extractGroupsFromPhoto, providerLabel } from '../services/aiExtract';
 import type { CollectionStore } from '../services/store';
@@ -18,6 +17,8 @@ interface GroupVoteTabProps {
   voterId: string;
   voterName: string;
   role: Role;
+  voteBudget: number;
+  onVoteBudgetChange: (budget: number) => void;
 }
 
 interface VoteTarget {
@@ -37,6 +38,8 @@ export function GroupVoteTab({
   voterId,
   voterName,
   role,
+  voteBudget,
+  onVoteBudgetChange,
 }: GroupVoteTabProps) {
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [newGroupTitle, setNewGroupTitle] = useState('');
@@ -129,8 +132,8 @@ export function GroupVoteTab({
 
   function castVote(key: string, delta: number) {
     const mine = mineFor(key);
-    if (delta > 0 && usedVotes >= VOTE_BUDGET) {
-      showToast(`You've used all ${VOTE_BUDGET} of your votes.`);
+    if (delta > 0 && usedVotes >= voteBudget) {
+      showToast(`You've used all ${voteBudget} of your votes.`);
       return;
     }
     if (delta < 0 && mine <= 0) return;
@@ -263,8 +266,21 @@ export function GroupVoteTab({
 
         <div>
           <h3 className="mb-2 text-sm font-semibold">Vote on discussion priority</h3>
-          <div className="mb-2.5 rounded-lg bg-brand-wash px-3 py-2 text-sm text-ink-soft">
-            You have <b className="text-brand-strong">{VOTE_BUDGET - usedVotes}/{VOTE_BUDGET}</b> votes left.
+          <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-brand-wash px-3 py-2 text-sm text-ink-soft">
+            <span>
+              You have <b className="text-brand-strong">{Math.max(0, voteBudget - usedVotes)}/{voteBudget}</b> votes left.
+            </span>
+            <label className="flex items-center gap-1.5 text-xs text-ink-faint">
+              Votes per person
+              <input
+                type="number"
+                min={1}
+                max={10}
+                value={voteBudget}
+                onChange={(e) => onVoteBudgetChange(Math.max(1, Math.min(10, Number(e.target.value) || 1)))}
+                className="w-12 rounded border border-line bg-surface px-1.5 py-0.5 text-center text-xs"
+              />
+            </label>
           </div>
           {sortedTargets.length ? (
             sortedTargets.map((t, i) => {

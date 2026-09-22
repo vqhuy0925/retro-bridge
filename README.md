@@ -1,9 +1,14 @@
 # Retro Bridge
 
 A lightweight sprint retro tool that syncs your team's physical sticky-note
-board with a remote PO in real time: a warm-up game, a 3-column shared board,
-AI photo capture of paper notes, idea grouping + dot voting, and an action
-item / summary wrap-up.
+board with a remote PO in real time: a "previous retro" carry-over panel, a
+warm-up game with a shared timer, a 3-column shared board, AI photo capture
+of paper notes, idea grouping + dot voting (with a host-adjustable vote
+budget), and an action item / summary wrap-up.
+
+Follows the team's usual ~1h30 retro flow: check last sprint's action items,
+warm up, write notes silently, present them, group and vote, discuss and
+capture new actions.
 
 Stack: React 18 + TypeScript + Vite + Tailwind CSS, Firebase (Firestore +
 Anonymous Auth) for realtime sync, a Vercel serverless function calling the

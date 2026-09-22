@@ -1,14 +1,20 @@
 import { Shuffle } from 'lucide-react';
 import { WARMUP_GAMES } from '../data/defaults';
+import { TimerWidget } from './TimerWidget';
+import { PreviousRetroPanel } from './PreviousRetroPanel';
+import type { PreviousRetro } from '../hooks/usePreviousRetro';
 import type { DocStore } from '../services/store';
-import type { WarmupState } from '../types';
+import type { TimerState, WarmupState } from '../types';
 
 interface WarmupTabProps {
   warmup: WarmupState | null;
   warmupDoc: DocStore<WarmupState>;
+  timer: TimerState;
+  timerDoc: DocStore<TimerState>;
+  previous: PreviousRetro | null;
 }
 
-export function WarmupTab({ warmup, warmupDoc }: WarmupTabProps) {
+export function WarmupTab({ warmup, warmupDoc, timer, timerDoc, previous }: WarmupTabProps) {
   function pickRandom() {
     const game = WARMUP_GAMES[Math.floor(Math.random() * WARMUP_GAMES.length)];
     warmupDoc.set({ gameId: game.id, pickedAt: Date.now() });
@@ -18,6 +24,8 @@ export function WarmupTab({ warmup, warmupDoc }: WarmupTabProps) {
 
   return (
     <section>
+      {previous && <PreviousRetroPanel previous={previous} />}
+
       <div className="mb-3.5 flex flex-wrap items-end justify-between gap-2.5">
         <div>
           <h2 className="text-xl">Warm-up</h2>
@@ -32,6 +40,10 @@ export function WarmupTab({ warmup, warmupDoc }: WarmupTabProps) {
           <Shuffle size={15} />
           Shuffle a game
         </button>
+      </div>
+
+      <div className="mb-3.5">
+        <TimerWidget timer={timer} timerDoc={timerDoc} presets={[{ label: 'Warm-up', minutes: 15 }]} />
       </div>
 
       <div className="grid grid-cols-[repeat(auto-fit,minmax(230px,1fr))] gap-3.5">

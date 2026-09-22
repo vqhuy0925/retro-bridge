@@ -9,6 +9,10 @@ export interface Column {
 export interface RetroConfig {
   title: string;
   columns: Column[];
+  /** How many discussion votes each person gets in Group & Vote (host-adjustable). */
+  voteBudget?: number;
+  /** Room code of the retro this one follows on from, for the "previous retro" carry-over panel. */
+  previousRoomId?: string;
 }
 
 export interface WarmupGame {
@@ -69,6 +73,14 @@ export interface ActionItem {
 }
 
 export type TabId = 'warmup' | 'board' | 'group' | 'wrap';
+
+/** A shared countdown any client can start — used for the writing/presenting/warm-up phases. */
+export interface TimerState {
+  label: string;
+  durationSec: number;
+  /** Timestamp the countdown reaches zero, or null while idle. */
+  endsAt: number | null;
+}
 
 export interface ExtractedNoteRow {
   text: string;

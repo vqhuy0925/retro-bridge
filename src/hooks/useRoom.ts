@@ -5,6 +5,13 @@ function generateRoomCode(): string {
   return String(Math.floor(1000 + Math.random() * 9000));
 }
 
+const LAST_ROOM_KEY = 'rb_last_room';
+
+/** The most recent room this browser visited — used to prefill "previous retro" when starting a new one. */
+export function getLastRoomCode(): string | null {
+  return localStorage.getItem(LAST_ROOM_KEY);
+}
+
 export interface RoomController {
   /** The active room code, or null until one is created (fresh visit, no `?room=` link). */
   roomId: string | null;
@@ -27,6 +34,10 @@ export function useRoom(): RoomController {
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
+
+  useEffect(() => {
+    if (roomId) localStorage.setItem(LAST_ROOM_KEY, roomId);
+  }, [roomId]);
 
   function startRoom(code?: string): string {
     const target = code || generateRoomCode();

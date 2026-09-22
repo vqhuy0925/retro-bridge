@@ -44,4 +44,6 @@ export const WARMUP_GAMES: WarmupGame[] = [
   },
 ];
 
-export const VOTE_BUDGET = 5;
+// Matches the team's usual dot-voting cadence (2-3 votes each); host can
+// still adjust it per retro from the Group & Vote tab.
+export const VOTE_BUDGET = 3;

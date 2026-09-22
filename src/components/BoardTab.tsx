@@ -2,10 +2,11 @@ import { useMemo, useRef, useState } from 'react';
 import { Camera, ChevronLeft, ChevronRight, Settings, X } from 'lucide-react';
 import { NoteCard } from './NoteCard';
 import { Modal } from './Modal';
+import { TimerWidget } from './TimerWidget';
 import { dismissToast, showToast } from '../hooks/useToast';
 import { aiErrorCopy, createPhotoThumbnail, extractNotesFromPhoto, providerLabel, AiExtractError } from '../services/aiExtract';
 import type { CollectionStore, DocStore } from '../services/store';
-import type { BoardPhoto, Column, ExtractedNoteRow, Note, RetroConfig, Role } from '../types';
+import type { BoardPhoto, Column, ExtractedNoteRow, Note, RetroConfig, Role, TimerState } from '../types';
 
 interface BoardTabProps {
   config: RetroConfig;
@@ -16,9 +17,22 @@ interface BoardTabProps {
   photosCol: CollectionStore<BoardPhoto>;
   role: Role;
   author: string;
+  timer: TimerState;
+  timerDoc: DocStore<TimerState>;
 }
 
-export function BoardTab({ config, configDoc, notes, notesCol, photos, photosCol, role, author }: BoardTabProps) {
+export function BoardTab({
+  config,
+  configDoc,
+  notes,
+  notesCol,
+  photos,
+  photosCol,
+  role,
+  author,
+  timer,
+  timerDoc,
+}: BoardTabProps) {
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [editingColumns, setEditingColumns] = useState(false);
   const [reviewRows, setReviewRows] = useState<ExtractedNoteRow[] | null>(null);
@@ -96,6 +110,17 @@ export function BoardTab({ config, configDoc, notes, notesCol, photos, photosCol
         <p className="mt-0.5 text-sm text-ink-soft">
           Type notes directly, or snap a close-up photo of each column's sticky notes and let AI read them in.
         </p>
+      </div>
+
+      <div className="mb-4">
+        <TimerWidget
+          timer={timer}
+          timerDoc={timerDoc}
+          presets={[
+            { label: 'Silent writing', minutes: 7 },
+            { label: 'Presenting', minutes: 3 },
+          ]}
+        />
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-2.5">
