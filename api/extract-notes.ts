@@ -62,6 +62,89 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+interface VisionParagraph {
+  text: string;
+  xCenterRatio: number;
+}
+
+interface CloudVisionAnnotateResponse {
+  responses?: Array<{
+    fullTextAnnotation?: {
+      pages?: Array<{
+        width?: number;
+        blocks?: Array<{
+          boundingBox?: { vertices?: Array<{ x?: number }> };
+          paragraphs?: Array<{
+            boundingBox?: { vertices?: Array<{ x?: number }> };
+            words?: Array<{ symbols?: Array<{ text?: string }> }>;
+          }>;
+        }>;
+      }>;
+    };
+    error?: { message?: string };
+  }>;
+}
+
+// Cloud Vision has no notion of "column" either, but unlike Tesseract it
+// does hand back a bounding box per paragraph — good enough to bucket each
+// note into the column under its horizontal position on the board, which
+// beats dumping everything into column 0.
+function paragraphColumn(xCenterRatio: number, columns: ColumnInput[]): string {
+  if (columns.length === 0) return '';
+  const idx = Math.min(columns.length - 1, Math.floor(xCenterRatio * columns.length));
+  return columns[idx].id;
+}
+
+/**
+ * Second attempt when Gemini is unavailable (high demand / rate limit) —
+ * plain handwriting OCR via Cloud Vision's DOCUMENT_TEXT_DETECTION, with no
+ * "which column" or "which group" reasoning of its own. Notes get bucketed
+ * by horizontal position; groups mode has no clustering signal at all, so
+ * every line lands in one catch-all group for the reviewer to split up.
+ * Only reached when GOOGLE_CLOUD_VISION_API_KEY is configured — otherwise
+ * the caller falls straight through to the 'server' error as before.
+ */
+async function extractWithCloudVision(imageBase64: string, mimeType: string): Promise<VisionParagraph[]> {
+  const apiKey = process.env.GOOGLE_CLOUD_VISION_API_KEY;
+  if (!apiKey) throw new Error('Cloud Vision not configured (missing GOOGLE_CLOUD_VISION_API_KEY).');
+
+  const res = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      requests: [
+        {
+          image: { content: imageBase64 },
+          features: [{ type: 'DOCUMENT_TEXT_DETECTION' }],
+        },
+      ],
+    }),
+  });
+  if (!res.ok) throw new Error(`Cloud Vision request failed (${res.status}).`);
+
+  const body = (await res.json()) as CloudVisionAnnotateResponse;
+  const page = body.responses?.[0]?.fullTextAnnotation?.pages?.[0];
+  const apiError = body.responses?.[0]?.error?.message;
+  if (apiError) throw new Error(`Cloud Vision error: ${apiError}`);
+  if (!page || !page.width) return [];
+
+  const paragraphs: VisionParagraph[] = [];
+  for (const block of page.blocks || []) {
+    for (const paragraph of block.paragraphs || []) {
+      const text = (paragraph.words || [])
+        .map((w) => (w.symbols || []).map((s) => s.text || '').join(''))
+        .join(' ')
+        .trim();
+      if (!text) continue;
+      const xs = (paragraph.boundingBox?.vertices || block.boundingBox?.vertices || [])
+        .map((v) => v.x ?? 0);
+      const xCenter = xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : page.width / 2;
+      paragraphs.push({ text, xCenterRatio: xCenter / page.width });
+    }
+  }
+  return paragraphs;
+}
+
 // Only retry a 503 ("high demand") — that's transient server-side load and
 // often clears within a couple seconds. A 429 (rate limit) means the
 // per-minute/per-day quota is used up; retrying seconds later almost always
@@ -112,11 +195,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
     const text = result.response.text();
     const parsed = parseJsonLoose(text);
-
-    if (!Array.isArray(parsed)) {
-      res.status(200).json({ ok: false, error: 'The model did not return a list.' });
-      return;
-    }
+    if (!Array.isArray(parsed)) throw new Error('The model did not return a list.');
 
     if (body.mode === 'notes') {
       const rows = parsed
@@ -138,7 +217,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       res.status(200).json({ ok: true, groups });
     }
   } catch (err) {
-    console.error('extract-notes failed', err);
+    console.error('extract-notes failed, trying Cloud Vision fallback', err);
+    try {
+      const paragraphs = await extractWithCloudVision(body.imageBase64, body.mimeType);
+      if (body.mode === 'notes') {
+        const rows = paragraphs.map((p) => ({ text: p.text, column: paragraphColumn(p.xCenterRatio, columns) }));
+        res.status(200).json({ ok: true, rows });
+      } else {
+        const items = paragraphs.map((p) => p.text);
+        const groups = items.length ? [{ label: 'Ungrouped (Cloud Vision fallback)', items }] : [];
+        res.status(200).json({ ok: true, groups });
+      }
+      return;
+    } catch (fallbackErr) {
+      console.error('Cloud Vision fallback also failed', fallbackErr);
+    }
+
     const status = err instanceof GoogleGenerativeAIFetchError ? err.status : undefined;
     const message =
       status === 503

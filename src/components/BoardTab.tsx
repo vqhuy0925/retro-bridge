@@ -22,6 +22,7 @@ export function BoardTab({ config, configDoc, notes, notesCol, photos, photosCol
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [editingColumns, setEditingColumns] = useState(false);
   const [reviewRows, setReviewRows] = useState<ExtractedNoteRow[] | null>(null);
+  const [manualEntryOpen, setManualEntryOpen] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [viewingPhoto, setViewingPhoto] = useState<BoardPhoto | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -66,27 +67,14 @@ export function BoardTab({ config, configDoc, notes, notesCol, photos, photosCol
       }
     } catch (err) {
       const code = err instanceof AiExtractError ? err.code : 'unknown';
-      // Gemini is unreachable (rate-limited, overloaded, or offline) —
-      // fall back to on-device OCR so a busy quota doesn't block capture
-      // entirely. It reads plain lines with no column reasoning, so
-      // everything lands in the first column for the reviewer to sort.
+      showToast(aiErrorCopy(code, err instanceof AiExtractError ? err.message : undefined));
+      // 'server' already means both Gemini and the server-side Cloud Vision
+      // fallback (see api/extract-notes.ts) failed; 'network' means the
+      // device couldn't reach the API at all. Either way, there's no more
+      // automated extraction left to try — offer manual entry instead of
+      // guessing with a worse on-device OCR pass.
       if (code === 'server' || code === 'network') {
-        const fallbackToast = showToast('AI service busy — trying on-device OCR instead…', true);
-        try {
-          // Dynamically imported: tesseract.js is ~250 kB and only needed
-          // on this rare fallback path, so it shouldn't bloat everyone
-          // else's initial bundle.
-          const { extractTextWithTesseract } = await import('../services/ocrFallback');
-          const rows = await extractTextWithTesseract(file, config.columns[0]?.id || '');
-          if (rows.length) setReviewRows(rows);
-          else showToast('On-device OCR could not read anything either — try typing notes manually.');
-        } catch {
-          showToast('On-device OCR failed too — try typing notes manually.');
-        } finally {
-          dismissToast(fallbackToast);
-        }
-      } else {
-        showToast(aiErrorCopy(code, err instanceof AiExtractError ? err.message : undefined));
+        setManualEntryOpen(true);
       }
     } finally {
       setAnalyzing(false);
@@ -312,6 +300,27 @@ export function BoardTab({ config, configDoc, notes, notesCol, photos, photosCol
           }}
         />
       )}
+      {manualEntryOpen && (
+        <ManualEntryModal
+          columns={config.columns}
+          onCancel={() => setManualEntryOpen(false)}
+          onConfirm={(rows) => {
+            rows.forEach((r) =>
+              notesCol.add({
+                text: r.text,
+                columnId: r.column,
+                role,
+                author,
+                source: 'manual',
+                createdAt: Date.now(),
+                groupId: null,
+              }),
+            );
+            setManualEntryOpen(false);
+            showToast('Added notes to the board.');
+          }}
+        />
+      )}
     </section>
   );
 }
@@ -428,6 +437,83 @@ function NoteReviewModal({
             </div>
           </div>
         ))}
+      </div>
+    </Modal>
+  );
+}
+
+function ManualEntryModal({
+  columns,
+  onCancel,
+  onConfirm,
+}: {
+  columns: Column[];
+  onCancel: () => void;
+  onConfirm: (rows: ExtractedNoteRow[]) => void;
+}) {
+  const [draftRows, setDraftRows] = useState([{ text: '', column: columns[0]?.id || '' }]);
+
+  return (
+    <Modal
+      title="AI couldn't read the photo"
+      subtitle="Type the notes from the board yourself instead."
+      onDismiss={onCancel}
+      actions={[
+        { label: 'Cancel', onClick: onCancel },
+        {
+          label: 'Add to board',
+          primary: true,
+          onClick: () =>
+            onConfirm(
+              draftRows.filter((r) => r.text.trim()).map((r) => ({ text: r.text.trim(), column: r.column })),
+            ),
+        },
+      ]}
+    >
+      <div className="flex flex-col gap-2">
+        {draftRows.map((r, i) => (
+          <div key={i} className="flex items-start gap-2 border-b border-line-soft pb-2 last:border-b-0">
+            <div className="flex flex-1 flex-col gap-1.5">
+              <input
+                type="text"
+                autoFocus={i === draftRows.length - 1}
+                placeholder="Note text…"
+                value={r.text}
+                onChange={(e) =>
+                  setDraftRows((rs) => rs.map((row, idx) => (idx === i ? { ...row, text: e.target.value } : row)))
+                }
+                className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-sm"
+              />
+              <select
+                value={r.column}
+                onChange={(e) =>
+                  setDraftRows((rs) => rs.map((row, idx) => (idx === i ? { ...row, column: e.target.value } : row)))
+                }
+                className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-sm"
+              >
+                {columns.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button
+              onClick={() => setDraftRows((rs) => rs.filter((_, idx) => idx !== i))}
+              disabled={draftRows.length === 1}
+              aria-label="Remove note"
+              className="mt-1.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink-faint hover:bg-line-soft hover:text-danger disabled:opacity-30"
+            >
+              <X size={15} />
+            </button>
+          </div>
+        ))}
+        <button
+          onClick={() => setDraftRows((rs) => [...rs, { text: '', column: columns[0]?.id || '' }])}
+          className="self-start rounded-lg border border-line bg-surface px-3 py-1.5 text-sm font-semibold text-ink hover:border-ink-faint"
+        >
+          + Add another note
+        </button>
       </div>
     </Modal>
   );
