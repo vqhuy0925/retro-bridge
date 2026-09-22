@@ -23,8 +23,8 @@ export function NoteCard({ note, color, columns, onEdit, onMove, onDelete }: Not
 
   return (
     <div
-      className="rounded-lg border border-line bg-surface p-2.5 shadow-card"
-      style={{ borderLeft: `4px solid ${color}` }}
+      className="rounded-r-lg bg-surface p-2.5"
+      style={{ borderLeft: `3px solid ${color}` }}
     >
       <textarea
         value={text}

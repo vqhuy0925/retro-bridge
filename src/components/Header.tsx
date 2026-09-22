@@ -38,54 +38,47 @@ export function Header({ role, onRoleChange, storeMode, onNewRetro, topic, confi
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-4 border-b border-line pb-4 pt-3">
-      <div className="flex min-w-0 flex-1 basis-60 items-center gap-2.5">
-        <svg width="38" height="30" viewBox="0 0 38 30" fill="none" aria-hidden="true" className="shrink-0">
-          <circle cx="6" cy="8" r="4" fill="var(--team)" />
-          <circle cx="32" cy="22" r="4" fill="var(--po)" />
-          <path
-            d="M9 9 C 18 4, 22 26, 30 21"
-            stroke="var(--brand)"
-            strokeWidth="1.6"
-            strokeDasharray="3 3"
-            fill="none"
+    <div className="flex flex-wrap items-center gap-4 pb-4 pt-3">
+      <div className="min-w-0 flex-1 basis-60">
+        <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-ink-faint">
+          Retro Bridge
+          <span
+            title={isSynced ? 'Live sync active' : 'Local demo (not synced)'}
+            className={`h-1.5 w-1.5 rounded-full ${isSynced ? 'bg-brand' : 'bg-ink-faint'}`}
           />
-        </svg>
-        <div className="min-w-0 flex-1">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">Retro Bridge</div>
-          {editingTitle ? (
-            <input
-              type="text"
-              autoFocus
-              value={draftTitle}
-              onChange={(e) => setDraftTitle(e.target.value)}
-              onBlur={commitTitle}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-                if (e.key === 'Escape') {
-                  setDraftTitle(topic);
-                  setEditingTitle(false);
-                }
-              }}
-              className="w-full max-w-xs rounded-lg border border-brand bg-surface px-2 py-0.5 text-xl font-semibold text-ink"
-            />
-          ) : (
-            <button
-              onClick={startEditing}
-              className="group flex min-w-0 items-center gap-1.5 text-left"
-              aria-label="Edit retro topic name"
-            >
-              <h1 className="truncate text-xl font-semibold text-ink">{topic}</h1>
-              <Pencil size={13} className="shrink-0 text-ink-faint opacity-0 group-hover:opacity-100" />
-            </button>
-          )}
         </div>
+        {editingTitle ? (
+          <input
+            type="text"
+            autoFocus
+            value={draftTitle}
+            onChange={(e) => setDraftTitle(e.target.value)}
+            onBlur={commitTitle}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+              if (e.key === 'Escape') {
+                setDraftTitle(topic);
+                setEditingTitle(false);
+              }
+            }}
+            className="w-full max-w-xs border-b border-brand bg-transparent py-0.5 text-xl font-semibold text-ink outline-none"
+          />
+        ) : (
+          <button
+            onClick={startEditing}
+            className="group flex min-w-0 items-center gap-1.5 text-left"
+            aria-label="Edit retro topic name"
+          >
+            <h1 className="truncate text-xl font-semibold text-ink">{topic}</h1>
+            <Pencil size={13} className="shrink-0 text-ink-faint opacity-0 group-hover:opacity-100" />
+          </button>
+        )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2.5">
+      <div className="flex flex-wrap items-center gap-4">
         <button
           onClick={copyLink}
-          className="flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-ink hover:border-ink-faint"
+          className="flex items-center gap-1.5 text-xs font-semibold text-ink-soft hover:text-ink"
         >
           <LinkIcon size={13} />
           Copy invite link
@@ -93,20 +86,13 @@ export function Header({ role, onRoleChange, storeMode, onNewRetro, topic, confi
 
         <button
           onClick={onNewRetro}
-          className="flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-ink hover:border-ink-faint"
+          className="flex items-center gap-1.5 text-xs font-semibold text-ink-soft hover:text-ink"
         >
           <Plus size={13} />
           New retro
         </button>
 
-        <span className="flex items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-1.5 text-xs text-ink-soft">
-          <span
-            className={`h-1.5 w-1.5 rounded-full ${isSynced ? 'bg-brand shadow-[0_0_0_3px_var(--brand-wash)]' : 'bg-ink-faint'}`}
-          />
-          {isSynced ? 'Live sync active' : 'Local demo (not synced)'}
-        </span>
-
-        <div className="flex rounded-full border border-line bg-surface p-0.5">
+        <div className="flex rounded-full bg-line-soft p-0.5">
           <button
             onClick={() => onRoleChange('team')}
             className={`rounded-full px-3.5 py-1.5 text-xs font-semibold ${

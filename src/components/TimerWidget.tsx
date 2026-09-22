@@ -68,13 +68,9 @@ export function TimerWidget({ timer, timerDoc }: TimerWidgetProps) {
   }
 
   return (
-    <div
-      className={`flex flex-wrap items-center gap-3 rounded-xl border bg-surface p-3.5 ${
-        expired ? 'border-danger' : 'border-line'
-      }`}
-    >
+    <div className="flex flex-wrap items-center gap-3">
       {running ? (
-        <span className={`font-mono text-3xl font-semibold tabular-nums ${expired ? 'text-danger' : 'text-ink'}`}>
+        <span className={`font-mono text-2xl font-semibold tabular-nums ${expired ? 'text-danger' : 'text-ink'}`}>
           {expired ? "Time's up" : format(remaining)}
         </span>
       ) : (
@@ -87,7 +83,7 @@ export function TimerWidget({ timer, timerDoc }: TimerWidgetProps) {
             onBlur={commitDraft}
             onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
             aria-label="Minutes"
-            className="w-12 rounded-lg border border-line bg-surface px-1.5 py-1 text-center font-mono text-2xl font-semibold text-ink"
+            className="w-12 border-b border-line bg-transparent px-1.5 py-1 text-center font-mono text-2xl font-semibold text-ink outline-none focus:border-brand"
           />
           <span className="font-mono text-2xl font-semibold text-ink-faint">:</span>
           <input
@@ -98,7 +94,7 @@ export function TimerWidget({ timer, timerDoc }: TimerWidgetProps) {
             onBlur={commitDraft}
             onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
             aria-label="Seconds"
-            className="w-12 rounded-lg border border-line bg-surface px-1.5 py-1 text-center font-mono text-2xl font-semibold text-ink"
+            className="w-12 border-b border-line bg-transparent px-1.5 py-1 text-center font-mono text-2xl font-semibold text-ink outline-none focus:border-brand"
           />
           <span className="ml-0.5 text-[11px] text-ink-faint">min : sec</span>
         </div>

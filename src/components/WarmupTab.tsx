@@ -54,17 +54,15 @@ export function WarmupTab({ warmup, warmupDoc, timer, timerDoc, previous }: Warm
           return (
             <div
               key={g.id}
-              className={`relative rounded-xl border bg-surface p-4 shadow-card ${
-                picked ? 'border-brand ring-2 ring-brand-wash' : 'border-line'
+              className={`relative rounded-xl border p-4 ${
+                picked ? 'border-brand' : 'border-line-soft'
               }`}
             >
               {picked && (
-                <span className="absolute right-3 top-3 text-[11px] font-bold text-brand">Selected</span>
+                <span className="absolute right-4 top-4 text-[11px] font-bold text-brand">Selected</span>
               )}
               <div className="mb-1.5 flex items-center gap-2">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-wash text-brand-strong">
-                  <Icon size={16} />
-                </span>
+                <Icon size={16} className="shrink-0 text-brand-strong" />
                 <h3 className="text-base font-semibold">{g.title}</h3>
               </div>
               <p className="mb-2.5 text-sm leading-snug text-ink-soft">{g.instruction}</p>
@@ -76,7 +74,7 @@ export function WarmupTab({ warmup, warmupDoc, timer, timerDoc, previous }: Warm
       </div>
 
       {current && (
-        <div className="mt-5 rounded-xl border border-line bg-brand-wash p-4">
+        <div className="mt-6 border-l-2 border-brand pl-4">
           <div className="flex items-center gap-2 text-[11.5px] font-bold uppercase tracking-wide text-brand-strong">
             <current.icon size={14} />
             Now playing
@@ -89,10 +87,10 @@ export function WarmupTab({ warmup, warmupDoc, timer, timerDoc, previous }: Warm
             ))}
           </ol>
 
-          <div className="mt-3 rounded-lg border border-line bg-surface p-3">
-            <span className="text-[11px] font-bold uppercase tracking-wide text-ink-faint">Example</span>
-            <p className="mt-1.5 text-sm text-ink">{current.example}</p>
-          </div>
+          <p className="mt-3 text-sm italic text-ink-soft">
+            <span className="not-italic font-semibold text-ink-faint">Example — </span>
+            {current.example}
+          </p>
         </div>
       )}
     </section>

@@ -160,7 +160,7 @@ export function GroupVoteTab({
         <button
           disabled={analyzing}
           onClick={() => fileInputRef.current?.click()}
-          className="flex items-center gap-1.5 rounded-lg bg-brand px-3.5 py-2 text-sm font-semibold text-white hover:bg-brand-strong disabled:opacity-50"
+          className="flex items-center gap-1.5 text-sm font-semibold text-ink-soft hover:text-ink disabled:opacity-50"
         >
           <Camera size={15} />
           {analyzing ? 'Analyzing…' : 'Snap / upload photo of grouped ideas'}
@@ -181,14 +181,14 @@ export function GroupVoteTab({
       <div className="grid grid-cols-1 items-start gap-5 md:grid-cols-[1.1fr_1fr]">
         <div>
           <h3 className="mb-2 text-sm font-semibold">Select notes to group</h3>
-          <div className="mb-3.5 flex flex-col gap-1.5">
+          <div className="mb-3.5 flex flex-col">
             {ungrouped.length ? (
               ungrouped.map((n) => {
                 const col = columns.find((c) => c.id === n.columnId);
                 return (
                   <label
                     key={n.id}
-                    className="flex items-start gap-2 rounded-lg border border-line bg-surface px-2.5 py-2"
+                    className="flex items-start gap-2 border-b border-line-soft py-2 last:border-b-0"
                   >
                     <input
                       type="checkbox"
@@ -202,9 +202,7 @@ export function GroupVoteTab({
                 );
               })
             ) : (
-              <div className="rounded-lg border border-dashed border-line py-2.5 text-center text-xs text-ink-faint">
-                No ungrouped notes left.
-              </div>
+              <div className="py-2.5 text-center text-xs text-ink-faint">No ungrouped notes left.</div>
             )}
           </div>
           <div className="mb-4.5 flex gap-2">
@@ -228,7 +226,7 @@ export function GroupVoteTab({
             groups.map((g) => {
               const members = notes.filter((n) => n.groupId === g.id);
               return (
-                <div key={g.id} className="mb-3 rounded-xl border border-line bg-surface p-3.5">
+                <div key={g.id} className="mb-3 border-b border-line-soft pb-3 last:border-b-0">
                   <div className="mb-2 flex items-center justify-between">
                     <h4 className="text-sm font-semibold">{g.title}</h4>
                     <button
@@ -257,15 +255,13 @@ export function GroupVoteTab({
               );
             })
           ) : (
-            <div className="rounded-lg border border-dashed border-line py-2.5 text-center text-xs text-ink-faint">
-              No groups yet.
-            </div>
+            <div className="py-2.5 text-center text-xs text-ink-faint">No groups yet.</div>
           )}
         </div>
 
         <div>
           <h3 className="mb-2 text-sm font-semibold">Vote on discussion priority</h3>
-          <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-brand-wash px-3 py-2 text-sm text-ink-soft">
+          <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2 border-b border-line-soft pb-2.5 text-sm text-ink-soft">
             <span>
               You have <b className="text-brand-strong">{Math.max(0, voteBudget - usedVotes)}/{voteBudget}</b> votes left.
             </span>
@@ -277,7 +273,7 @@ export function GroupVoteTab({
                 max={10}
                 value={voteBudget}
                 onChange={(e) => onVoteBudgetChange(Math.max(1, Math.min(10, Number(e.target.value) || 1)))}
-                className="w-12 rounded border border-line bg-surface px-1.5 py-0.5 text-center text-xs"
+                className="w-12 rounded border border-line-soft bg-surface px-1.5 py-0.5 text-center text-xs"
               />
             </label>
           </div>
@@ -286,7 +282,7 @@ export function GroupVoteTab({
               const total = totalFor(t.key);
               const mine = mineFor(t.key);
               return (
-                <div key={t.key} className="mb-2 flex items-center gap-2.5 rounded-xl border border-line bg-surface px-3 py-2.5">
+                <div key={t.key} className="flex items-center gap-2.5 border-b border-line-soft py-2.5 last:border-b-0">
                   <span className="w-[18px] font-mono text-sm text-ink-faint">#{i + 1}</span>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-semibold">{t.title}</div>
@@ -296,7 +292,7 @@ export function GroupVoteTab({
                     <button
                       disabled={mine <= 0}
                       onClick={() => castVote(t.key, -1)}
-                      className="flex h-[26px] w-[26px] items-center justify-center rounded-full border border-line bg-surface hover:border-brand disabled:opacity-40"
+                      className="flex h-[26px] w-[26px] items-center justify-center rounded-full text-ink-soft hover:bg-line-soft disabled:opacity-40"
                     >
                       <Minus size={13} />
                     </button>
@@ -305,7 +301,7 @@ export function GroupVoteTab({
                     </span>
                     <button
                       onClick={() => castVote(t.key, 1)}
-                      className="flex h-[26px] w-[26px] items-center justify-center rounded-full border border-line bg-surface hover:border-brand"
+                      className="flex h-[26px] w-[26px] items-center justify-center rounded-full text-ink-soft hover:bg-line-soft"
                     >
                       <Plus size={13} />
                     </button>
@@ -315,7 +311,7 @@ export function GroupVoteTab({
               );
             })
           ) : (
-            <div className="rounded-lg border border-dashed border-line py-2.5 text-center text-xs text-ink-faint">
+            <div className="py-2.5 text-center text-xs text-ink-faint">
               Nothing to vote on yet — group some notes first.
             </div>
           )}

@@ -124,7 +124,7 @@ export function BoardTab({
             setCaptureColumn(null);
             fileInputRef.current?.click();
           }}
-          className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3.5 py-2 text-sm font-semibold text-ink hover:border-ink-faint disabled:opacity-50"
+          className="flex items-center gap-1.5 text-sm font-semibold text-ink-soft hover:text-ink disabled:opacity-50"
         >
           <Camera size={15} />
           Snap / upload board photo
@@ -149,7 +149,7 @@ export function BoardTab({
         />
         <button
           onClick={() => setEditingColumns(true)}
-          className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3.5 py-2 text-sm font-semibold text-ink hover:border-ink-faint"
+          className="flex items-center gap-1.5 text-sm font-semibold text-ink-soft hover:text-ink"
         >
           <Settings size={15} />
           Rename columns
@@ -164,7 +164,7 @@ export function BoardTab({
               <div key={p.id} className="w-44 shrink-0 snap-start">
                 <button
                   onClick={() => setViewingPhoto(p)}
-                  className="block aspect-[4/3] w-full overflow-hidden rounded-xl border border-line bg-line-soft"
+                  className="block aspect-[4/3] w-full overflow-hidden rounded-lg bg-line-soft"
                 >
                   <img src={p.dataUrl} alt={`Board photo by ${p.author}`} className="h-full w-full object-cover" />
                 </button>
@@ -186,15 +186,14 @@ export function BoardTab({
         </div>
       )}
 
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] items-start gap-4">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] items-start gap-6">
         {config.columns.map((col) => {
           const colNotes = notes
             .filter((n) => n.columnId === col.id)
             .sort((a, b) => a.createdAt - b.createdAt);
           return (
-            <div key={col.id} className="rounded-2xl border border-line bg-surface p-3.5">
+            <div key={col.id} className="border-t-2 pt-3" style={{ borderColor: col.color }}>
               <div className="mb-2.5 flex items-center gap-2">
-                <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: col.color }} />
                 <h3 className="flex-1 text-sm font-semibold">{col.name}</h3>
                 <span className="text-xs text-ink-faint">{colNotes.length}</span>
               </div>
@@ -207,7 +206,7 @@ export function BoardTab({
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') submitNote(col.id);
                   }}
-                  className="flex-1 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-sm"
+                  className="flex-1 rounded-lg border border-line-soft bg-surface px-2.5 py-1.5 text-sm focus:border-brand focus:outline-none"
                 />
                 <button
                   onClick={() => submitNote(col.id)}
@@ -222,9 +221,9 @@ export function BoardTab({
                   setCaptureColumn(col);
                   fileInputRef.current?.click();
                 }}
-                className="mb-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-sm font-semibold text-ink hover:border-ink-faint disabled:opacity-50"
+                className="mb-3 flex items-center gap-1.5 text-xs font-semibold text-ink-faint hover:text-ink-soft disabled:opacity-50"
               >
-                <Camera size={15} />
+                <Camera size={13} />
                 Snap / upload notes for this column
               </button>
               <div className="flex flex-col gap-2.5">
@@ -241,9 +240,7 @@ export function BoardTab({
                     />
                   ))
                 ) : (
-                  <div className="rounded-lg border border-dashed border-line py-3 text-center text-xs text-ink-faint">
-                    No notes yet
-                  </div>
+                  <div className="py-3 text-center text-xs text-ink-faint">No notes yet</div>
                 )}
               </div>
             </div>

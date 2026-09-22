@@ -28,7 +28,7 @@ export function Modal({ title, subtitle, actions, onDismiss, children }: ModalPr
         if (e.target === e.currentTarget) onDismiss();
       }}
     >
-      <div className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl bg-surface p-5 shadow-2xl">
+      <div className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl bg-surface p-5 shadow-lg">
         <h3 className="font-display text-lg font-semibold text-ink">{title}</h3>
         {subtitle && <p className="mt-1 text-xs text-ink-soft">{subtitle}</p>}
         <div className="mt-3">{children}</div>

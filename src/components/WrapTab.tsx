@@ -93,20 +93,20 @@ export function WrapTab({ columns, notes, groups, votes, actions, actionsCol, wa
           placeholder="What needs to happen…"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-sm"
+          className="rounded-lg border border-line-soft bg-surface px-2.5 py-1.5 text-sm focus:border-brand focus:outline-none"
         />
         <input
           type="text"
           placeholder="Owner"
           value={owner}
           onChange={(e) => setOwner(e.target.value)}
-          className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-sm"
+          className="rounded-lg border border-line-soft bg-surface px-2.5 py-1.5 text-sm focus:border-brand focus:outline-none"
         />
         <input
           type="date"
           value={due}
           onChange={(e) => setDue(e.target.value)}
-          className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-sm"
+          className="rounded-lg border border-line-soft bg-surface px-2.5 py-1.5 text-sm focus:border-brand focus:outline-none"
         />
         <button
           onClick={addAction}
@@ -121,7 +121,7 @@ export function WrapTab({ columns, notes, groups, votes, actions, actionsCol, wa
           .slice()
           .sort((a, b) => a.createdAt - b.createdAt)
           .map((a) => (
-            <div key={a.id} className="mb-1.5 flex items-center gap-2.5 rounded-lg border border-line bg-surface px-3 py-2">
+            <div key={a.id} className="flex items-center gap-2.5 border-b border-line-soft py-2">
               <input
                 type="checkbox"
                 checked={a.done}
@@ -147,9 +147,7 @@ export function WrapTab({ columns, notes, groups, votes, actions, actionsCol, wa
             </div>
           ))
       ) : (
-        <div className="rounded-lg border border-dashed border-line py-2.5 text-center text-xs text-ink-faint">
-          No action items yet.
-        </div>
+        <div className="py-2.5 text-center text-xs text-ink-faint">No action items yet.</div>
       )}
 
       <div className="mb-3.5 mt-8 flex flex-wrap items-end justify-between gap-2.5">
@@ -159,21 +157,21 @@ export function WrapTab({ columns, notes, groups, votes, actions, actionsCol, wa
         </div>
         <button
           onClick={downloadSummary}
-          className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3.5 py-2 text-sm font-semibold text-ink hover:border-ink-faint"
+          className="flex items-center gap-1.5 text-sm font-semibold text-ink-soft hover:text-ink"
         >
           <Download size={15} />
           Download summary (.md)
         </button>
       </div>
 
-      <div className="mb-5 grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3">
+      <div className="mb-6 flex flex-wrap gap-x-8 gap-y-4 border-y border-line-soft py-4">
         {columns.map((c) => (
-          <div key={c.id} className="rounded-xl border border-line bg-surface p-3.5 text-center">
+          <div key={c.id}>
             <div className="font-display text-3xl font-semibold">{notes.filter((n) => n.columnId === c.id).length}</div>
             <div className="mt-0.5 text-xs text-ink-soft">{c.name}</div>
           </div>
         ))}
-        <div className="rounded-xl border border-line bg-surface p-3.5 text-center">
+        <div>
           <div className="font-display text-3xl font-semibold">
             {actions.filter((a) => a.done).length}/{actions.length}
           </div>
@@ -182,7 +180,7 @@ export function WrapTab({ columns, notes, groups, votes, actions, actionsCol, wa
       </div>
 
       <h3 className="mb-2 text-sm font-semibold">Discussion priorities (by vote)</h3>
-      <ul className="mb-5 list-none p-0">
+      <ul className="list-none p-0">
         {rankedVotes.length ? (
           rankedVotes.map((t) => (
             <li key={t.key} className="flex justify-between gap-2.5 border-b border-line-soft py-2 text-sm last:border-b-0">
@@ -191,25 +189,7 @@ export function WrapTab({ columns, notes, groups, votes, actions, actionsCol, wa
             </li>
           ))
         ) : (
-          <li className="py-2 text-sm">No votes yet.</li>
-        )}
-      </ul>
-
-      <h3 className="mb-2 text-sm font-semibold">Action items</h3>
-      <ul className="list-none p-0">
-        {actions.length ? (
-          actions.map((a) => (
-            <li key={a.id} className="flex justify-between gap-2.5 border-b border-line-soft py-2 text-sm last:border-b-0">
-              <span>
-                {a.done ? '✓ ' : ''}
-                {a.text}
-                {a.owner ? ` — ${a.owner}` : ''}
-              </span>
-              <span className="font-mono">{a.dueDate}</span>
-            </li>
-          ))
-        ) : (
-          <li className="py-2 text-sm">No action items yet.</li>
+          <li className="py-2 text-sm text-ink-faint">No votes yet.</li>
         )}
       </ul>
     </section>

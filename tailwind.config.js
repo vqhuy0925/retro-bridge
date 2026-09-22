@@ -28,7 +28,7 @@ export default {
         mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
       },
       boxShadow: {
-        card: '0 2px 10px rgba(20,30,26,.07)',
+        card: '0 1px 2px rgba(20,30,26,.05)',
       },
     },
   },
