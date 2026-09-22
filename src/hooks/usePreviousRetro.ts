@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { User } from 'firebase/auth';
 import { createRetroStore } from '../services/store';
-import type { ActionItem, RetroConfig } from '../types';
+import type { ActionItem, RetroConfig, WrapPhoto } from '../types';
 
 export interface PreviousRetro {
   roomId: string;
   config: RetroConfig | null;
   actions: ActionItem[];
   toggleAction: (id: string, done: boolean) => void;
+  wrapPhoto: WrapPhoto | null;
 }
 
 /**
@@ -25,18 +26,22 @@ export function usePreviousRetro(
   );
   const [config, setConfig] = useState<RetroConfig | null>(null);
   const [actions, setActions] = useState<ActionItem[]>([]);
+  const [wrapPhoto, setWrapPhoto] = useState<WrapPhoto | null>(null);
 
   useEffect(() => {
     if (!store) {
       setConfig(null);
       setActions([]);
+      setWrapPhoto(null);
       return;
     }
     const unsubConfig = store.doc<RetroConfig>('config').subscribe(setConfig);
     const unsubActions = store.collection<ActionItem>('actions').subscribe(setActions);
+    const unsubWrapPhoto = store.doc<WrapPhoto>('wrapPhoto').subscribe(setWrapPhoto);
     return () => {
       unsubConfig();
       unsubActions();
+      unsubWrapPhoto();
     };
   }, [store]);
 
@@ -47,5 +52,6 @@ export function usePreviousRetro(
     config,
     actions,
     toggleAction: (id, done) => store.collection<ActionItem>('actions').update(id, { done }),
+    wrapPhoto: wrapPhoto?.dataUrl ? wrapPhoto : null,
   };
 }

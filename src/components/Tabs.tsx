@@ -2,9 +2,10 @@ import type { TabId } from '../types';
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'warmup', label: '1 · Warm-up' },
-  { id: 'board', label: '2 · Shared Board' },
-  { id: 'group', label: '3 · Group & Vote' },
-  { id: 'wrap', label: '4 · Actions & Wrap-up' },
+  { id: 'previous', label: '2 · Previous Retro Actions' },
+  { id: 'board', label: '3 · Current Topic' },
+  { id: 'group', label: '4 · Group & Vote' },
+  { id: 'wrap', label: '5 · Actions & Wrap-up' },
 ];
 
 interface TabsProps {

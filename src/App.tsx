@@ -3,6 +3,7 @@ import type { User } from 'firebase/auth';
 import { Header } from './components/Header';
 import { Tabs } from './components/Tabs';
 import { WarmupTab } from './components/WarmupTab';
+import { PreviousRetroTab } from './components/PreviousRetroTab';
 import { BoardTab } from './components/BoardTab';
 import { GroupVoteTab } from './components/GroupVoteTab';
 import { WrapTab } from './components/WrapTab';
@@ -27,7 +28,10 @@ import type {
   TimerState,
   Vote,
   WarmupState,
+  WrapPhoto,
 } from './types';
+
+const DEFAULT_WRAP_PHOTO: WrapPhoto = { dataUrl: '', author: '', createdAt: 0 };
 
 export default function App() {
   const { roomId, startRoom } = useRoom();
@@ -91,6 +95,7 @@ export default function App() {
   const groups = useStoreCollection<Group>(store, 'groups');
   const votes = useStoreCollection<Vote>(store, 'votes');
   const actions = useStoreCollection<ActionItem>(store, 'actions');
+  const wrapPhoto = useStoreDoc<WrapPhoto>(store, 'wrapPhoto', DEFAULT_WRAP_PHOTO);
   const previous = usePreviousRetro(config.previousRoomId, user);
 
   if (!roomId) {
@@ -116,6 +121,7 @@ export default function App() {
   const groupsCol = store.collection<Group>('groups');
   const votesCol = store.collection<Vote>('votes');
   const actionsCol = store.collection<ActionItem>('actions');
+  const wrapPhotoDoc = store.doc<WrapPhoto>('wrapPhoto');
 
   const safeConfig = config.columns?.length ? config : defaultConfig;
 
@@ -146,9 +152,9 @@ export default function App() {
           warmupDoc={warmupDoc}
           timer={timer}
           timerDoc={timerDoc}
-          previous={previous}
         />
       )}
+      {tab === 'previous' && <PreviousRetroTab previous={previous} />}
       {tab === 'board' && (
         <BoardTab
           config={safeConfig}
@@ -188,6 +194,9 @@ export default function App() {
           actions={actions}
           actionsCol={actionsCol}
           warmup={warmup.gameId ? (warmup as WarmupState) : null}
+          wrapPhoto={wrapPhoto}
+          wrapPhotoDoc={wrapPhotoDoc}
+          author={displayName}
         />
       )}
 

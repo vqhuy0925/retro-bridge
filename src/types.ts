@@ -80,7 +80,14 @@ export interface ActionItem {
   createdAt: number;
 }
 
-export type TabId = 'warmup' | 'board' | 'group' | 'wrap';
+/** The team + PO group photo snapped at wrap-up, carried over to the next retro's "Previous Retro Actions" tab. */
+export interface WrapPhoto {
+  dataUrl: string;
+  author: string;
+  createdAt: number;
+}
+
+export type TabId = 'warmup' | 'previous' | 'board' | 'group' | 'wrap';
 
 /** A shared countdown any client can set/start/pause — the whole room sees the same clock. */
 export interface TimerState {

@@ -1,8 +1,10 @@
-import { useState } from 'react';
-import { Download, X } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Camera, Download, X } from 'lucide-react';
 import { WARMUP_GAMES } from '../data/defaults';
-import type { CollectionStore } from '../services/store';
-import type { ActionItem, Column, Group, Note, Vote, WarmupState } from '../types';
+import { createPhotoThumbnail } from '../services/aiExtract';
+import { showToast } from '../hooks/useToast';
+import type { CollectionStore, DocStore } from '../services/store';
+import type { ActionItem, Column, Group, Note, Vote, WarmupState, WrapPhoto } from '../types';
 
 interface WrapTabProps {
   columns: Column[];
@@ -12,6 +14,9 @@ interface WrapTabProps {
   actions: ActionItem[];
   actionsCol: CollectionStore<ActionItem>;
   warmup: WarmupState | null;
+  wrapPhoto: WrapPhoto;
+  wrapPhotoDoc: DocStore<WrapPhoto>;
+  author: string;
 }
 
 function targetTitle(key: string, groups: Group[], notes: Note[]): string {
@@ -23,10 +28,36 @@ function targetTitle(key: string, groups: Group[], notes: Note[]): string {
   return notes.find((n) => n.id === id)?.text || 'Note';
 }
 
-export function WrapTab({ columns, notes, groups, votes, actions, actionsCol, warmup }: WrapTabProps) {
+export function WrapTab({
+  columns,
+  notes,
+  groups,
+  votes,
+  actions,
+  actionsCol,
+  warmup,
+  wrapPhoto,
+  wrapPhotoDoc,
+  author,
+}: WrapTabProps) {
   const [text, setText] = useState('');
   const [owner, setOwner] = useState('');
   const [due, setDue] = useState('');
+  const [savingPhoto, setSavingPhoto] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
+  function savePhoto(file: File) {
+    setSavingPhoto(true);
+    createPhotoThumbnail(file)
+      .then((dataUrl) => {
+        if (!dataUrl) {
+          showToast("Couldn't save that photo — try a smaller image.");
+          return;
+        }
+        wrapPhotoDoc.set({ dataUrl, author, createdAt: Date.now() });
+      })
+      .finally(() => setSavingPhoto(false));
+  }
 
   function addAction() {
     if (!text.trim()) return;
@@ -192,6 +223,54 @@ export function WrapTab({ columns, notes, groups, votes, actions, actionsCol, wa
           <li className="py-2 text-base text-ink-faint">No votes yet.</li>
         )}
       </ul>
+
+      <div className="mb-3.5 mt-8">
+        <h2 className="text-2xl">Team Photo</h2>
+        <p className="mt-0.5 text-base text-ink-soft">
+          Snap it together with the PO right as you close out — it'll show up on the next retro's "Previous
+          Retro Actions" tab.
+        </p>
+      </div>
+
+      {wrapPhoto.dataUrl && (
+        <div className="mb-3.5">
+          <img src={wrapPhoto.dataUrl} alt="Team photo" className="w-full rounded-lg" />
+          <div className="mt-1.5 text-sm text-ink-faint">
+            {wrapPhoto.author} · {new Date(wrapPhoto.createdAt).toLocaleString()}
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center gap-2.5">
+        <button
+          disabled={savingPhoto}
+          onClick={() => photoInputRef.current?.click()}
+          className="flex items-center gap-1.5 text-base font-semibold text-ink-soft hover:text-ink disabled:opacity-50"
+        >
+          <Camera size={15} />
+          {wrapPhoto.dataUrl ? 'Retake / upload team photo' : 'Snap / upload team photo'}
+        </button>
+        {wrapPhoto.dataUrl && (
+          <button
+            onClick={() => wrapPhotoDoc.set({ dataUrl: '', author: '', createdAt: 0 })}
+            className="flex items-center gap-1.5 text-base font-semibold text-ink-faint hover:text-danger"
+          >
+            <X size={15} />
+            Remove
+          </button>
+        )}
+        <input
+          ref={photoInputRef}
+          type="file"
+          accept="image/*"
+          hidden
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = '';
+            if (file) savePhoto(file);
+          }}
+        />
+      </div>
     </section>
   );
 }

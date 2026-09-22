@@ -1,8 +1,6 @@
 import { Shuffle } from 'lucide-react';
 import { WARMUP_GAMES } from '../data/defaults';
 import { TimerWidget } from './TimerWidget';
-import { PreviousRetroPanel } from './PreviousRetroPanel';
-import type { PreviousRetro } from '../hooks/usePreviousRetro';
 import type { DocStore } from '../services/store';
 import type { TimerState, WarmupState } from '../types';
 
@@ -11,10 +9,9 @@ interface WarmupTabProps {
   warmupDoc: DocStore<WarmupState>;
   timer: TimerState;
   timerDoc: DocStore<TimerState>;
-  previous: PreviousRetro | null;
 }
 
-export function WarmupTab({ warmup, warmupDoc, timer, timerDoc, previous }: WarmupTabProps) {
+export function WarmupTab({ warmup, warmupDoc, timer, timerDoc }: WarmupTabProps) {
   function pickRandom() {
     const game = WARMUP_GAMES[Math.floor(Math.random() * WARMUP_GAMES.length)];
     warmupDoc.set({ gameId: game.id, pickedAt: Date.now() });
@@ -88,12 +85,6 @@ export function WarmupTab({ warmup, warmupDoc, timer, timerDoc, previous }: Warm
             <span className="not-italic font-semibold text-ink-faint">Example — </span>
             {current.example}
           </p>
-        </div>
-      )}
-
-      {previous && (
-        <div className="mt-8">
-          <PreviousRetroPanel previous={previous} />
         </div>
       )}
     </section>

@@ -65,6 +65,19 @@ export function PreviousRetroPanel({ previous }: PreviousRetroPanelProps) {
       ) : (
         <div className="text-base text-ink-soft">No action items were logged last time.</div>
       )}
+
+      {previous.wrapPhoto && (
+        <div className="mt-6">
+          <div className="mb-2.5 text-xs font-bold uppercase tracking-wide text-brand-strong">
+            Team photo
+          </div>
+          <img
+            src={previous.wrapPhoto.dataUrl}
+            alt={`Team photo from ${config.title}`}
+            className="w-full rounded-lg"
+          />
+        </div>
+      )}
     </div>
   );
 }
