@@ -1,4 +1,4 @@
-import { RefreshCw, Shuffle } from 'lucide-react';
+import { Shuffle } from 'lucide-react';
 import { WARMUP_GAMES } from '../data/defaults';
 import { TimerWidget } from './TimerWidget';
 import { PreviousRetroPanel } from './PreviousRetroPanel';
@@ -21,16 +21,6 @@ export function WarmupTab({ warmup, warmupDoc, timer, timerDoc, previous }: Warm
   }
 
   const current = warmup ? WARMUP_GAMES.find((g) => g.id === warmup.gameId) : null;
-
-  function shufflePrompt() {
-    if (!warmup || !current?.prompts?.length) return;
-    let next = Math.floor(Math.random() * current.prompts.length);
-    // Avoid landing on the same prompt twice in a row when there's more than one to pick from.
-    if (current.prompts.length > 1 && next === (warmup.promptIndex ?? -1)) {
-      next = (next + 1) % current.prompts.length;
-    }
-    warmupDoc.update({ promptIndex: next });
-  }
 
   return (
     <section>
@@ -78,6 +68,7 @@ export function WarmupTab({ warmup, warmupDoc, timer, timerDoc, previous }: Warm
                 <h3 className="text-base font-semibold">{g.title}</h3>
               </div>
               <p className="mb-2.5 text-sm leading-snug text-ink-soft">{g.instruction}</p>
+              <p className="mb-2.5 text-[12.5px] italic leading-snug text-ink-faint">e.g. {g.example}</p>
               <div className="text-[11.5px] text-ink-faint">{g.duration}</div>
             </div>
           );
@@ -98,25 +89,10 @@ export function WarmupTab({ warmup, warmupDoc, timer, timerDoc, previous }: Warm
             ))}
           </ol>
 
-          {current.prompts && current.prompts.length > 0 && (
-            <div className="mt-3 rounded-lg border border-line bg-surface p-3">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] font-bold uppercase tracking-wide text-ink-faint">
-                  Ready-made prompt — no prep needed
-                </span>
-                <button
-                  onClick={shufflePrompt}
-                  className="flex items-center gap-1 rounded-full border border-line px-2.5 py-1 text-[11.5px] font-semibold text-ink hover:border-brand"
-                >
-                  <RefreshCw size={11} />
-                  New prompt
-                </button>
-              </div>
-              <p className="mt-1.5 text-sm font-medium text-ink">
-                {current.prompts[warmup?.promptIndex ?? 0]}
-              </p>
-            </div>
-          )}
+          <div className="mt-3 rounded-lg border border-line bg-surface p-3">
+            <span className="text-[11px] font-bold uppercase tracking-wide text-ink-faint">Example</span>
+            <p className="mt-1.5 text-sm text-ink">{current.example}</p>
+          </div>
         </div>
       )}
     </section>

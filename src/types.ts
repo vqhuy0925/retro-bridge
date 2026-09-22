@@ -26,15 +26,13 @@ export interface WarmupGame {
   icon: LucideIcon;
   /** Step-by-step "how to play" guide, shown once the game is picked. */
   steps: string[];
-  /** Ready-made prompts a host can use as-is, for games that otherwise need the host to write their own content. */
-  prompts?: string[];
+  /** A worked example so the host can see exactly what it should sound like. */
+  example: string;
 }
 
 export interface WarmupState {
   gameId: string;
   pickedAt: number;
-  /** Index into the picked game's `prompts` bank, synced so the whole room sees the same prompt. */
-  promptIndex?: number;
 }
 
 export type NoteSource = 'manual' | 'photo';
