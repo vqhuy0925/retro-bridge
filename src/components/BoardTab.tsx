@@ -24,6 +24,7 @@ export function BoardTab({ config, configDoc, notes, notesCol, photos, photosCol
   const [reviewRows, setReviewRows] = useState<ExtractedNoteRow[] | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [viewingPhoto, setViewingPhoto] = useState<BoardPhoto | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function submitNote(columnId: string) {
@@ -41,18 +42,19 @@ export function BoardTab({ config, configDoc, notes, notesCol, photos, photosCol
     setDraft((d) => ({ ...d, [columnId]: '' }));
   }
 
-  async function handlePhoto(file: File) {
-    setAnalyzing(true);
-    const analyzingToast = showToast('Analyzing photo…', true);
-
-    // Save the photo itself so the PO / remote team can see the physical
-    // board too — independent of note extraction, so it still shows up
-    // even if that fails.
+  // Saving the photo itself is independent of AI extraction — it happens
+  // either way, so the PO / remote team can see the physical board even
+  // when extraction is skipped or fails.
+  function savePhoto(file: File) {
     createPhotoThumbnail(file).then((dataUrl) => {
       if (!dataUrl) return;
       photosCol.add({ dataUrl, role, author, createdAt: Date.now() });
     });
+  }
 
+  async function extractWithAi(file: File) {
+    setAnalyzing(true);
+    const analyzingToast = showToast('Analyzing photo…', true);
     try {
       const rows = await extractNotesFromPhoto(file, config.columns);
       if (!rows.length) {
@@ -62,7 +64,28 @@ export function BoardTab({ config, configDoc, notes, notesCol, photos, photosCol
       }
     } catch (err) {
       const code = err instanceof AiExtractError ? err.code : 'unknown';
-      showToast(aiErrorCopy(code, err instanceof AiExtractError ? err.message : undefined));
+      // Gemini is unreachable (rate-limited, overloaded, or offline) —
+      // fall back to on-device OCR so a busy quota doesn't block capture
+      // entirely. It reads plain lines with no column reasoning, so
+      // everything lands in the first column for the reviewer to sort.
+      if (code === 'server' || code === 'network') {
+        const fallbackToast = showToast('AI service busy — trying on-device OCR instead…', true);
+        try {
+          // Dynamically imported: tesseract.js is ~250 kB and only needed
+          // on this rare fallback path, so it shouldn't bloat everyone
+          // else's initial bundle.
+          const { extractTextWithTesseract } = await import('../services/ocrFallback');
+          const rows = await extractTextWithTesseract(file, config.columns[0]?.id || '');
+          if (rows.length) setReviewRows(rows);
+          else showToast('On-device OCR could not read anything either — try typing notes manually.');
+        } catch {
+          showToast('On-device OCR failed too — try typing notes manually.');
+        } finally {
+          dismissToast(fallbackToast);
+        }
+      } else {
+        showToast(aiErrorCopy(code, err instanceof AiExtractError ? err.message : undefined));
+      }
     } finally {
       setAnalyzing(false);
       dismissToast(analyzingToast);
@@ -96,7 +119,7 @@ export function BoardTab({ config, configDoc, notes, notesCol, photos, photosCol
           onChange={(e) => {
             const file = e.target.files?.[0];
             e.target.value = '';
-            if (file) handlePhoto(file);
+            if (file) setPendingFile(file);
           }}
         />
         <button
@@ -198,6 +221,34 @@ export function BoardTab({ config, configDoc, notes, notesCol, photos, photosCol
           onSave={(columns) => configDoc.update({ columns })}
           onClose={() => setEditingColumns(false)}
         />
+      )}
+
+      {pendingFile && (
+        <Modal
+          title="Extract notes with AI?"
+          subtitle="The photo is saved for the room either way — extraction just also asks Gemini to sort its notes into columns for you."
+          onDismiss={() => setPendingFile(null)}
+          actions={[
+            {
+              label: 'Just save photo',
+              onClick: () => {
+                savePhoto(pendingFile);
+                setPendingFile(null);
+              },
+            },
+            {
+              label: 'Extract with AI',
+              primary: true,
+              onClick: () => {
+                savePhoto(pendingFile);
+                extractWithAi(pendingFile);
+                setPendingFile(null);
+              },
+            },
+          ]}
+        >
+          <p className="text-sm text-ink-soft">Skip this if you're just re-uploading or don't need it re-sorted.</p>
+        </Modal>
       )}
 
       {viewingPhoto && (
