@@ -40,7 +40,7 @@ export function BoardTab({
   const [analyzing, setAnalyzing] = useState(false);
   const [viewingPhoto, setViewingPhoto] = useState<BoardPhoto | null>(null);
   // Which column a just-opened file dialog is for — null means the
-  // top-level "Save board photo" button (reference photo only, no AI).
+  // top-level "Snap / upload board photo" button (reference photo only, no AI).
   const [captureColumn, setCaptureColumn] = useState<Column | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -127,13 +127,12 @@ export function BoardTab({
           className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3.5 py-2 text-sm font-semibold text-ink hover:border-ink-faint disabled:opacity-50"
         >
           <Camera size={15} />
-          Save board photo
+          Snap / upload board photo
         </button>
         <input
           ref={fileInputRef}
           type="file"
           accept="image/*"
-          capture="environment"
           hidden
           onChange={(e) => {
             const file = e.target.files?.[0];
@@ -226,7 +225,7 @@ export function BoardTab({
                 className="mb-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-sm font-semibold text-ink hover:border-ink-faint disabled:opacity-50"
               >
                 <Camera size={15} />
-                Snap notes for this column
+                Snap / upload notes for this column
               </button>
               <div className="flex flex-col gap-2.5">
                 {colNotes.length ? (

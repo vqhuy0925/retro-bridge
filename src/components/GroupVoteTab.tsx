@@ -163,13 +163,12 @@ export function GroupVoteTab({
           className="flex items-center gap-1.5 rounded-lg bg-brand px-3.5 py-2 text-sm font-semibold text-white hover:bg-brand-strong disabled:opacity-50"
         >
           <Camera size={15} />
-          {analyzing ? 'Analyzing…' : 'Snap photo of grouped ideas'}
+          {analyzing ? 'Analyzing…' : 'Snap / upload photo of grouped ideas'}
         </button>
         <input
           ref={fileInputRef}
           type="file"
           accept="image/*"
-          capture="environment"
           hidden
           onChange={(e) => {
             const file = e.target.files?.[0];
