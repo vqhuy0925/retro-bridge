@@ -115,7 +115,7 @@ function paragraphColumn(xCenterRatio: number, columns: ColumnInput[]): string {
  * Only reached when GOOGLE_CLOUD_VISION_API_KEY is configured — otherwise
  * the caller falls straight through to the 'server' error as before.
  */
-async function extractWithCloudVision(imageBase64: string, mimeType: string): Promise<VisionParagraph[]> {
+async function extractWithCloudVision(imageBase64: string): Promise<VisionParagraph[]> {
   const apiKey = process.env.GOOGLE_CLOUD_VISION_API_KEY;
   if (!apiKey) throw new Error('Cloud Vision not configured (missing GOOGLE_CLOUD_VISION_API_KEY).');
 
@@ -236,7 +236,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   } catch (err) {
     console.error('extract-notes failed, trying Cloud Vision fallback', err);
     try {
-      const paragraphs = await extractWithCloudVision(body.imageBase64, body.mimeType);
+      const paragraphs = await extractWithCloudVision(body.imageBase64);
       if (body.mode === 'notes') {
         // A single-column photo needs no position guess at all — every
         // paragraph belongs to that one column by definition.
