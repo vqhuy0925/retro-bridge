@@ -18,6 +18,12 @@ export function Modal({ title, subtitle, actions, onDismiss, children }: ModalPr
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      style={{
+        paddingTop: 'calc(1rem + env(safe-area-inset-top))',
+        paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))',
+        paddingLeft: 'calc(1rem + env(safe-area-inset-left))',
+        paddingRight: 'calc(1rem + env(safe-area-inset-right))',
+      }}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onDismiss();
       }}

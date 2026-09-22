@@ -50,6 +50,13 @@ body {
   color: var(--ink);
   font-family: 'Karla', system-ui, sans-serif;
   margin: 0;
+  /* Installed as a standalone PWA, iOS draws behind the notch/status bar and
+     home indicator (viewport-fit=cover + black-translucent status bar) — pad
+     the safe areas so the header and content aren't hidden under them. */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 h1,
