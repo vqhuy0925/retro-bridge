@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --paper: #eef2ef;
+  --surface: #ffffff;
+  --ink: #1b2420;
+  --ink-soft: #54615a;
+  --ink-faint: #8a968f;
+  --line: #d8e0da;
+  --line-soft: #e6ece8;
+  --brand: #0e6b57;
+  --brand-strong: #0a5142;
+  --brand-wash: #e3f0ec;
+  --team: #1f8a6f;
+  --po: #9b4fbe;
+  --well: #e3a916;
+  --improve: #e06a46;
+  --park: #4472c4;
+  --danger: #c0392b;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #101512;
+    --surface: #1a211d;
+    --ink: #e9efea;
+    --ink-soft: #aab6ae;
+    --ink-faint: #77847c;
+    --line: #2a342e;
+    --line-soft: #232c26;
+    --brand: #3fbb9a;
+    --brand-strong: #2e9a7d;
+    --brand-wash: #152420;
+    --team: #3fbb9a;
+    --po: #c48ce0;
+    --well: #e8c35a;
+    --improve: #e88a6a;
+    --park: #7da0de;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'Karla', system-ui, sans-serif;
+  margin: 0;
+}
+
+h1,
+h2,
+h3 {
+  font-family: 'Newsreader', Georgia, serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+::selection {
+  background: var(--brand-wash);
+}

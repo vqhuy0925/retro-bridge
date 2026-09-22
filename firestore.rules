@@ -1,0 +1,13 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Anyone who knows a room code can read/write that room's data once
+    // signed in anonymously — there is no per-user access control by
+    // design (this mirrors tools like Miro/EasyRetro where the link
+    // itself is the access boundary). Retro content isn't sensitive.
+    match /retros/{roomId}/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
