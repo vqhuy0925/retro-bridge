@@ -127,6 +127,7 @@ export default function App() {
         storeMode={store.mode}
         topic={safeConfig.title}
         onNewRetro={() => setShowNewRetroModal(true)}
+        configDoc={configDoc}
       />
 
       {showNewRetroModal && (

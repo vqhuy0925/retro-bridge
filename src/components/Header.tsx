@@ -1,5 +1,7 @@
-import { Link as LinkIcon, Plus } from 'lucide-react';
-import type { Role } from '../types';
+import { useState } from 'react';
+import { Link as LinkIcon, Pencil, Plus } from 'lucide-react';
+import type { DocStore } from '../services/store';
+import type { RetroConfig, Role } from '../types';
 import { showToast } from '../hooks/useToast';
 
 interface HeaderProps {
@@ -8,10 +10,25 @@ interface HeaderProps {
   storeMode: 'firestore' | 'local';
   onNewRetro: () => void;
   topic: string;
+  configDoc: DocStore<RetroConfig>;
 }
 
-export function Header({ role, onRoleChange, storeMode, onNewRetro, topic }: HeaderProps) {
+export function Header({ role, onRoleChange, storeMode, onNewRetro, topic, configDoc }: HeaderProps) {
   const isSynced = storeMode === 'firestore';
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [draftTitle, setDraftTitle] = useState(topic);
+
+  function startEditing() {
+    setDraftTitle(topic);
+    setEditingTitle(true);
+  }
+
+  function commitTitle() {
+    setEditingTitle(false);
+    const next = draftTitle.trim();
+    if (!next || next === topic) return;
+    configDoc.update({ title: next });
+  }
 
   function copyLink() {
     navigator.clipboard
@@ -34,9 +51,34 @@ export function Header({ role, onRoleChange, storeMode, onNewRetro, topic }: Hea
             fill="none"
           />
         </svg>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">Retro Bridge</div>
-          <h1 className="truncate text-xl font-semibold text-ink">{topic}</h1>
+          {editingTitle ? (
+            <input
+              type="text"
+              autoFocus
+              value={draftTitle}
+              onChange={(e) => setDraftTitle(e.target.value)}
+              onBlur={commitTitle}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                if (e.key === 'Escape') {
+                  setDraftTitle(topic);
+                  setEditingTitle(false);
+                }
+              }}
+              className="w-full max-w-xs rounded-lg border border-brand bg-surface px-2 py-0.5 text-xl font-semibold text-ink"
+            />
+          ) : (
+            <button
+              onClick={startEditing}
+              className="group flex min-w-0 items-center gap-1.5 text-left"
+              aria-label="Edit retro topic name"
+            >
+              <h1 className="truncate text-xl font-semibold text-ink">{topic}</h1>
+              <Pencil size={13} className="shrink-0 text-ink-faint opacity-0 group-hover:opacity-100" />
+            </button>
+          )}
         </div>
       </div>
 
