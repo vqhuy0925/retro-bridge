@@ -7,20 +7,24 @@ import { BoardTab } from './components/BoardTab';
 import { GroupVoteTab } from './components/GroupVoteTab';
 import { WrapTab } from './components/WrapTab';
 import { ToastHost } from './components/ToastHost';
+import { NewRetroModal } from './components/NewRetroModal';
 import { useRoom } from './hooks/useRoom';
 import { useIdentity } from './hooks/useIdentity';
 import { useStoreDoc } from './hooks/useStoreDoc';
 import { useStoreCollection } from './hooks/useStoreCollection';
+import { showToast } from './hooks/useToast';
 import { ensureAnonymousUser } from './services/firebase/authService';
 import { createRetroStore } from './services/store';
 import { DEFAULT_COLUMNS } from './data/defaults';
 import type { ActionItem, BoardPhoto, Group, Note, RetroConfig, TabId, Vote, WarmupState } from './types';
 
 export default function App() {
-  const roomId = useRoom();
+  const { roomId, startRoom } = useRoom();
   const [user, setUser] = useState<User | null>(null);
   const [authResolved, setAuthResolved] = useState(false);
   const [tab, setTab] = useState<TabId>('warmup');
+  const [pendingTitle, setPendingTitle] = useState<string | null>(null);
+  const [showNewRetroModal, setShowNewRetroModal] = useState(false);
 
   useEffect(() => {
     ensureAnonymousUser().then((u) => {
@@ -30,9 +34,26 @@ export default function App() {
   }, []);
 
   const store = useMemo(
-    () => (authResolved ? createRetroStore(roomId, user) : null),
+    () => (authResolved && roomId ? createRetroStore(roomId, user) : null),
     [roomId, user, authResolved],
   );
+
+  function handleCreateRetro(topic: string) {
+    setPendingTitle(topic);
+    startRoom();
+    setShowNewRetroModal(false);
+  }
+
+  useEffect(() => {
+    if (!store || !pendingTitle) return;
+    const title = pendingTitle;
+    setPendingTitle(null);
+    store
+      .doc<RetroConfig>('config')
+      .set({ title, columns: DEFAULT_COLUMNS })
+      .then(() => navigator.clipboard?.writeText(window.location.href).catch(() => {}))
+      .then(() => showToast(`"${title}" is ready — invite link copied, share it with your PO and team.`));
+  }, [store, pendingTitle]);
 
   const { role, setRole, displayName, voterId } = useIdentity(user);
 
@@ -47,6 +68,15 @@ export default function App() {
   const groups = useStoreCollection<Group>(store, 'groups');
   const votes = useStoreCollection<Vote>(store, 'votes');
   const actions = useStoreCollection<ActionItem>(store, 'actions');
+
+  if (!roomId) {
+    return (
+      <>
+        <NewRetroModal onCreate={handleCreateRetro} />
+        <ToastHost />
+      </>
+    );
+  }
 
   if (!store) {
     return (
@@ -66,7 +96,17 @@ export default function App() {
 
   return (
     <div className="mx-auto max-w-[1080px] px-4 pb-12 pt-0">
-      <Header role={role} onRoleChange={setRole} storeMode={store.mode} />
+      <Header
+        role={role}
+        onRoleChange={setRole}
+        storeMode={store.mode}
+        topic={safeConfig.title}
+        onNewRetro={() => setShowNewRetroModal(true)}
+      />
+
+      {showNewRetroModal && (
+        <NewRetroModal onCreate={handleCreateRetro} onCancel={() => setShowNewRetroModal(false)} />
+      )}
 
       <Tabs active={tab} onChange={setTab} />
 

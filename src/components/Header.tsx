@@ -1,4 +1,4 @@
-import { Link as LinkIcon } from 'lucide-react';
+import { Link as LinkIcon, Plus } from 'lucide-react';
 import type { Role } from '../types';
 import { showToast } from '../hooks/useToast';
 
@@ -6,9 +6,11 @@ interface HeaderProps {
   role: Role;
   onRoleChange: (role: Role) => void;
   storeMode: 'firestore' | 'local';
+  onNewRetro: () => void;
+  topic: string;
 }
 
-export function Header({ role, onRoleChange, storeMode }: HeaderProps) {
+export function Header({ role, onRoleChange, storeMode, onNewRetro, topic }: HeaderProps) {
   const isSynced = storeMode === 'firestore';
 
   function copyLink() {
@@ -32,9 +34,9 @@ export function Header({ role, onRoleChange, storeMode }: HeaderProps) {
             fill="none"
           />
         </svg>
-        <div>
-          <h1 className="text-xl font-semibold text-ink">Retro Bridge</h1>
-          <div className="mt-0.5 text-xs text-ink-soft">Your paper board, synced live with a remote PO</div>
+        <div className="min-w-0">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">Retro Bridge</div>
+          <h1 className="truncate text-xl font-semibold text-ink">{topic}</h1>
         </div>
       </div>
 
@@ -45,6 +47,14 @@ export function Header({ role, onRoleChange, storeMode }: HeaderProps) {
         >
           <LinkIcon size={13} />
           Copy invite link
+        </button>
+
+        <button
+          onClick={onNewRetro}
+          className="flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-ink hover:border-ink-faint"
+        >
+          <Plus size={13} />
+          New retro
         </button>
 
         <span className="flex items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-1.5 text-xs text-ink-soft">
