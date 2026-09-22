@@ -22,10 +22,12 @@ export function BoardTab({ config, configDoc, notes, notesCol, photos, photosCol
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [editingColumns, setEditingColumns] = useState(false);
   const [reviewRows, setReviewRows] = useState<ExtractedNoteRow[] | null>(null);
-  const [manualEntryOpen, setManualEntryOpen] = useState(false);
+  const [manualEntryFor, setManualEntryFor] = useState<Column | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [viewingPhoto, setViewingPhoto] = useState<BoardPhoto | null>(null);
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  // Which column a just-opened file dialog is for — null means the
+  // top-level "Save board photo" button (reference photo only, no AI).
+  const [captureColumn, setCaptureColumn] = useState<Column | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const sortedPhotos = useMemo(() => [...photos].sort((a, b) => b.createdAt - a.createdAt), [photos]);
@@ -55,11 +57,15 @@ export function BoardTab({ config, configDoc, notes, notesCol, photos, photosCol
     });
   }
 
-  async function extractWithAi(file: File) {
+  // Photographing one column at a time — rather than the whole board — gives
+  // Gemini/Cloud Vision a close-up, unambiguous shot instead of trying to
+  // read small handwriting AND guess which column it's under from position.
+  // Passing a single column also lets the API skip that guess entirely.
+  async function extractColumnPhoto(file: File, column: Column) {
     setAnalyzing(true);
-    const analyzingToast = showToast('Analyzing photo…', true);
+    const analyzingToast = showToast(`Analyzing "${column.name}" photo…`, true);
     try {
-      const { rows, provider } = await extractNotesFromPhoto(file, config.columns);
+      const { rows, provider } = await extractNotesFromPhoto(file, [column]);
       if (!rows.length) {
         showToast(aiErrorCopy('empty'));
       } else {
@@ -75,7 +81,7 @@ export function BoardTab({ config, configDoc, notes, notesCol, photos, photosCol
       // automated extraction left to try — offer manual entry instead of
       // guessing with a worse on-device OCR pass.
       if (code === 'server' || code === 'network') {
-        setManualEntryOpen(true);
+        setManualEntryFor(column);
       }
     } finally {
       setAnalyzing(false);
@@ -88,18 +94,21 @@ export function BoardTab({ config, configDoc, notes, notesCol, photos, photosCol
       <div className="mb-3.5">
         <h2 className="text-xl">Shared Board — Round 1</h2>
         <p className="mt-0.5 text-sm text-ink-soft">
-          Type notes directly, or snap a photo of the paper board and let AI sort them into columns.
+          Type notes directly, or snap a close-up photo of each column's sticky notes and let AI read them in.
         </p>
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-2.5">
         <button
           disabled={analyzing}
-          onClick={() => fileInputRef.current?.click()}
-          className="flex items-center gap-1.5 rounded-lg bg-brand px-3.5 py-2 text-sm font-semibold text-white hover:bg-brand-strong disabled:opacity-50"
+          onClick={() => {
+            setCaptureColumn(null);
+            fileInputRef.current?.click();
+          }}
+          className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3.5 py-2 text-sm font-semibold text-ink hover:border-ink-faint disabled:opacity-50"
         >
           <Camera size={15} />
-          {analyzing ? 'Analyzing…' : 'Snap / upload board photo'}
+          Save board photo
         </button>
         <input
           ref={fileInputRef}
@@ -110,7 +119,14 @@ export function BoardTab({ config, configDoc, notes, notesCol, photos, photosCol
           onChange={(e) => {
             const file = e.target.files?.[0];
             e.target.value = '';
-            if (file) setPendingFile(file);
+            if (!file) return;
+            if (captureColumn) {
+              savePhoto(file);
+              extractColumnPhoto(file, captureColumn);
+            } else {
+              savePhoto(file);
+              showToast('Saved board photo.');
+            }
           }}
         />
         <button
@@ -163,6 +179,18 @@ export function BoardTab({ config, configDoc, notes, notesCol, photos, photosCol
                 <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: col.color }} />
                 <h3 className="flex-1 text-sm font-semibold">{col.name}</h3>
                 <span className="text-xs text-ink-faint">{colNotes.length}</span>
+                <button
+                  disabled={analyzing}
+                  onClick={() => {
+                    setCaptureColumn(col);
+                    fileInputRef.current?.click();
+                  }}
+                  aria-label={`Snap photo for ${col.name}`}
+                  title={`Snap photo for ${col.name}`}
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-ink-faint hover:bg-line-soft hover:text-ink disabled:opacity-30"
+                >
+                  <Camera size={14} />
+                </button>
               </div>
               <div className="mb-3 flex gap-1.5">
                 <input
@@ -212,34 +240,6 @@ export function BoardTab({ config, configDoc, notes, notesCol, photos, photosCol
           onSave={(columns) => configDoc.update({ columns })}
           onClose={() => setEditingColumns(false)}
         />
-      )}
-
-      {pendingFile && (
-        <Modal
-          title="Extract notes with AI?"
-          subtitle="The photo is saved for the room either way — extraction just also asks Gemini to sort its notes into columns for you."
-          onDismiss={() => setPendingFile(null)}
-          actions={[
-            {
-              label: 'Just save photo',
-              onClick: () => {
-                savePhoto(pendingFile);
-                setPendingFile(null);
-              },
-            },
-            {
-              label: 'Extract with AI',
-              primary: true,
-              onClick: () => {
-                savePhoto(pendingFile);
-                extractWithAi(pendingFile);
-                setPendingFile(null);
-              },
-            },
-          ]}
-        >
-          <p className="text-sm text-ink-soft">Skip this if you're just re-uploading or don't need it re-sorted.</p>
-        </Modal>
       )}
 
       {viewingPhoto &&
@@ -301,10 +301,12 @@ export function BoardTab({ config, configDoc, notes, notesCol, photos, photosCol
           }}
         />
       )}
-      {manualEntryOpen && (
+      {manualEntryFor && (
         <ManualEntryModal
           columns={config.columns}
-          onCancel={() => setManualEntryOpen(false)}
+          defaultColumnId={manualEntryFor.id}
+          columnName={manualEntryFor.name}
+          onCancel={() => setManualEntryFor(null)}
           onConfirm={(rows) => {
             rows.forEach((r) =>
               notesCol.add({
@@ -317,7 +319,7 @@ export function BoardTab({ config, configDoc, notes, notesCol, photos, photosCol
                 groupId: null,
               }),
             );
-            setManualEntryOpen(false);
+            setManualEntryFor(null);
             showToast('Added notes to the board.');
           }}
         />
@@ -445,19 +447,23 @@ function NoteReviewModal({
 
 function ManualEntryModal({
   columns,
+  defaultColumnId,
+  columnName,
   onCancel,
   onConfirm,
 }: {
   columns: Column[];
+  defaultColumnId: string;
+  columnName: string;
   onCancel: () => void;
   onConfirm: (rows: ExtractedNoteRow[]) => void;
 }) {
-  const [draftRows, setDraftRows] = useState([{ text: '', column: columns[0]?.id || '' }]);
+  const [draftRows, setDraftRows] = useState([{ text: '', column: defaultColumnId || columns[0]?.id || '' }]);
 
   return (
     <Modal
       title="AI couldn't read the photo"
-      subtitle="Type the notes from the board yourself instead."
+      subtitle={`Type the "${columnName}" notes yourself instead.`}
       onDismiss={onCancel}
       actions={[
         { label: 'Cancel', onClick: onCancel },
@@ -510,7 +516,7 @@ function ManualEntryModal({
           </div>
         ))}
         <button
-          onClick={() => setDraftRows((rs) => [...rs, { text: '', column: columns[0]?.id || '' }])}
+          onClick={() => setDraftRows((rs) => [...rs, { text: '', column: defaultColumnId || columns[0]?.id || '' }])}
           className="self-start rounded-lg border border-line bg-surface px-3 py-1.5 text-sm font-semibold text-ink hover:border-ink-faint"
         >
           + Add another note

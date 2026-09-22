@@ -19,6 +19,17 @@ const MODEL_NAME = process.env.GEMINI_MODEL || 'gemini-flash-latest';
 function buildPrompt(mode: 'notes' | 'groups', columns: ColumnInput[]): string {
   const colDesc = columns.map((c) => `${c.id} = "${c.name}"`).join(', ');
   if (mode === 'notes') {
+    // Callers now send a close-up photo of a single column (see BoardTab's
+    // per-column capture) rather than the whole board — no column to guess,
+    // so skip that reasoning and just ask for a flat list of notes. Still
+    // supports the old multi-column whole-board shape for any other caller.
+    if (columns.length === 1) {
+      return (
+        `This is a close-up photo of handwritten sticky notes from the "${columns[0].name}" section of a retro board — every note in this photo belongs to that same section. ` +
+        'Read each note and transcribe the handwriting into text (keep the meaning, fix obvious spelling mistakes; one entry per sticky note, or per line if notes overlap). ' +
+        'Reply with ONLY a JSON array of strings, one per note. If no notes are readable, return [].'
+      );
+    }
     return (
       `This is a photo of a retro whiteboard with handwritten sticky notes, placed into these areas: ${colDesc}. ` +
       'Read each note, transcribe the handwriting into text (keep the meaning, fix obvious spelling mistakes), and figure out which column each note belongs to based on its position on the board or the nearest section heading. ' +
@@ -198,11 +209,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     if (!Array.isArray(parsed)) throw new Error('The model did not return a list.');
 
     if (body.mode === 'notes') {
+      // Single-column prompt asks for a flat array of strings; the legacy
+      // multi-column prompt asks for {text, column} objects — handle both.
       const rows = parsed
-        .map((item) => ({
-          text: String((item as { text?: unknown })?.text || '').trim(),
-          column: String((item as { column?: unknown })?.column || columns[0]?.id || ''),
-        }))
+        .map((item) =>
+          typeof item === 'string'
+            ? { text: item.trim(), column: columns[0]?.id || '' }
+            : {
+                text: String((item as { text?: unknown })?.text || '').trim(),
+                column: String((item as { column?: unknown })?.column || columns[0]?.id || ''),
+              },
+        )
         .filter((r) => r.text);
       res.status(200).json({ ok: true, rows, provider: 'gemini' });
     } else {
@@ -221,7 +238,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     try {
       const paragraphs = await extractWithCloudVision(body.imageBase64, body.mimeType);
       if (body.mode === 'notes') {
-        const rows = paragraphs.map((p) => ({ text: p.text, column: paragraphColumn(p.xCenterRatio, columns) }));
+        // A single-column photo needs no position guess at all — every
+        // paragraph belongs to that one column by definition.
+        const rows = paragraphs.map((p) => ({
+          text: p.text,
+          column: columns.length === 1 ? columns[0].id : paragraphColumn(p.xCenterRatio, columns),
+        }));
         res.status(200).json({ ok: true, rows, provider: 'cloud-vision' });
       } else {
         const items = paragraphs.map((p) => p.text);
