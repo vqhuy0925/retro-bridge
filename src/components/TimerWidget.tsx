@@ -22,7 +22,14 @@ function clampDigits(raw: string, max: number): string {
 
 /** A plain set-your-own-time countdown (like the Windows Clock timer) synced to the whole room. */
 export function TimerWidget({ timer, timerDoc }: TimerWidgetProps) {
-  const running = timer.endsAt != null;
+  // Defensive: rooms created before this widget's schema settled (or a
+  // half-written doc) may be missing fields — never let `undefined` reach
+  // Firestore's setDoc(), which rejects it outright.
+  const setSec = timer.setSec ?? 0;
+  const remainingSec = timer.remainingSec ?? setSec;
+  const endsAt = timer.endsAt ?? null;
+
+  const running = endsAt != null;
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -31,18 +38,18 @@ export function TimerWidget({ timer, timerDoc }: TimerWidgetProps) {
     return () => clearInterval(id);
   }, [running]);
 
-  const remaining = running ? (timer.endsAt! - now) / 1000 : timer.remainingSec;
+  const remaining = running ? (endsAt! - now) / 1000 : remainingSec;
   const expired = running && remaining <= 0;
 
-  const [minutesDraft, setMinutesDraft] = useState(String(Math.floor(timer.remainingSec / 60)));
-  const [secondsDraft, setSecondsDraft] = useState(String(timer.remainingSec % 60).padStart(2, '0'));
+  const [minutesDraft, setMinutesDraft] = useState(String(Math.floor(remainingSec / 60)));
+  const [secondsDraft, setSecondsDraft] = useState(String(remainingSec % 60).padStart(2, '0'));
 
   // Keep the editable fields in sync with the shared value while idle (e.g. someone else set it).
   useEffect(() => {
     if (running) return;
-    setMinutesDraft(String(Math.floor(timer.remainingSec / 60)));
-    setSecondsDraft(String(timer.remainingSec % 60).padStart(2, '0'));
-  }, [timer.remainingSec, running]);
+    setMinutesDraft(String(Math.floor(remainingSec / 60)));
+    setSecondsDraft(String(remainingSec % 60).padStart(2, '0'));
+  }, [remainingSec, running]);
 
   function commitDraft() {
     const total = Math.max(0, Math.min(99 * 60 + 59, (Number(minutesDraft) || 0) * 60 + (Number(secondsDraft) || 0)));
@@ -51,13 +58,13 @@ export function TimerWidget({ timer, timerDoc }: TimerWidgetProps) {
 
   function start() {
     if (remaining <= 0) return;
-    timerDoc.set({ setSec: timer.setSec, remainingSec: timer.remainingSec, endsAt: Date.now() + remaining * 1000 });
+    timerDoc.set({ setSec, remainingSec, endsAt: Date.now() + remaining * 1000 });
   }
   function pause() {
-    timerDoc.set({ setSec: timer.setSec, remainingSec: Math.max(0, remaining), endsAt: null });
+    timerDoc.set({ setSec, remainingSec: Math.max(0, remaining), endsAt: null });
   }
   function reset() {
-    timerDoc.set({ setSec: timer.setSec, remainingSec: timer.setSec, endsAt: null });
+    timerDoc.set({ setSec, remainingSec: setSec, endsAt: null });
   }
 
   return (
