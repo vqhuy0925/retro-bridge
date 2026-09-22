@@ -13,7 +13,7 @@ interface RequestBody {
   columns: ColumnInput[];
 }
 
-const MODEL_NAME = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+const MODEL_NAME = process.env.GEMINI_MODEL || 'gemini-flash-latest';
 
 function buildPrompt(mode: 'notes' | 'groups', columns: ColumnInput[]): string {
   const colDesc = columns.map((c) => `${c.id} = "${c.name}"`).join(', ');
