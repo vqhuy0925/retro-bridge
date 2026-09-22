@@ -179,20 +179,8 @@ export function BoardTab({ config, configDoc, notes, notesCol, photos, photosCol
                 <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: col.color }} />
                 <h3 className="flex-1 text-sm font-semibold">{col.name}</h3>
                 <span className="text-xs text-ink-faint">{colNotes.length}</span>
-                <button
-                  disabled={analyzing}
-                  onClick={() => {
-                    setCaptureColumn(col);
-                    fileInputRef.current?.click();
-                  }}
-                  aria-label={`Snap photo for ${col.name}`}
-                  title={`Snap photo for ${col.name}`}
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-ink-faint hover:bg-line-soft hover:text-ink disabled:opacity-30"
-                >
-                  <Camera size={14} />
-                </button>
               </div>
-              <div className="mb-3 flex gap-1.5">
+              <div className="mb-2 flex gap-1.5">
                 <input
                   type="text"
                   placeholder="Add a note…"
@@ -210,6 +198,17 @@ export function BoardTab({ config, configDoc, notes, notesCol, photos, photosCol
                   +
                 </button>
               </div>
+              <button
+                disabled={analyzing}
+                onClick={() => {
+                  setCaptureColumn(col);
+                  fileInputRef.current?.click();
+                }}
+                className="mb-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-sm font-semibold text-ink hover:border-ink-faint disabled:opacity-50"
+              >
+                <Camera size={15} />
+                Snap notes for this column
+              </button>
               <div className="flex flex-col gap-2.5">
                 {colNotes.length ? (
                   colNotes.map((n) => (
