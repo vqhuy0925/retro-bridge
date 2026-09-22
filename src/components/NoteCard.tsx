@@ -35,15 +35,15 @@ export function NoteCard({ note, color, columns, onEdit, onMove, onDelete }: Not
           else setText(note.text);
         }}
         rows={2}
-        className="w-full resize-none rounded bg-transparent text-sm leading-snug text-ink outline-none focus:bg-line-soft"
+        className="w-full resize-none rounded bg-transparent text-base leading-snug text-ink outline-none focus:bg-line-soft"
       />
       <div className="mt-1.5 flex items-center justify-between gap-1.5">
-        <span className={`rounded-full px-2 py-0.5 text-[10.5px] font-bold ${tagClasses}`}>{tagLabel}</span>
+        <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${tagClasses}`}>{tagLabel}</span>
         <div className="flex items-center gap-1">
           <select
             value={note.columnId}
             onChange={(e) => onMove(e.target.value)}
-            className="rounded border border-line bg-surface px-1.5 py-0.5 text-[11px]"
+            className="rounded border border-line bg-surface px-1.5 py-0.5 text-xs"
           >
             {columns.map((c) => (
               <option key={c.id} value={c.id}>

@@ -96,7 +96,7 @@ export function TimerWidget({ timer, timerDoc }: TimerWidgetProps) {
             aria-label="Seconds"
             className="w-12 border-b border-line bg-transparent px-1.5 py-1 text-center font-mono text-2xl font-semibold text-ink outline-none focus:border-brand"
           />
-          <span className="ml-0.5 text-[11px] text-ink-faint">min : sec</span>
+          <span className="ml-0.5 text-xs text-ink-faint">min : sec</span>
         </div>
       )}
 
@@ -104,7 +104,7 @@ export function TimerWidget({ timer, timerDoc }: TimerWidgetProps) {
         {running ? (
           <button
             onClick={pause}
-            className="flex items-center gap-1 rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-ink hover:border-brand"
+            className="flex items-center gap-1 rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-semibold text-ink hover:border-brand"
           >
             <Pause size={12} />
             Pause
@@ -113,7 +113,7 @@ export function TimerWidget({ timer, timerDoc }: TimerWidgetProps) {
           <button
             onClick={start}
             disabled={remaining <= 0}
-            className="flex items-center gap-1 rounded-full bg-brand px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-strong disabled:opacity-40"
+            className="flex items-center gap-1 rounded-full bg-brand px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-strong disabled:opacity-40"
           >
             <Play size={12} />
             Start
@@ -121,7 +121,7 @@ export function TimerWidget({ timer, timerDoc }: TimerWidgetProps) {
         )}
         <button
           onClick={reset}
-          className="flex items-center gap-1 rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-ink hover:border-danger"
+          className="flex items-center gap-1 rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-semibold text-ink hover:border-danger"
         >
           <RotateCcw size={12} />
           Reset

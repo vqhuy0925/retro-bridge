@@ -19,7 +19,7 @@ export function Tabs({ active, onChange }: TabsProps) {
         <button
           key={tab.id}
           onClick={() => onChange(tab.id)}
-          className={`-mb-px whitespace-nowrap border-b-2 py-2.5 text-sm font-semibold ${
+          className={`-mb-px whitespace-nowrap border-b-2 py-2.5 text-base font-semibold ${
             active === tab.id
               ? 'border-brand text-ink'
               : 'border-transparent text-ink-faint hover:text-ink-soft'

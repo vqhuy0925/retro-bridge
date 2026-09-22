@@ -106,14 +106,14 @@ export function BoardTab({
   return (
     <section>
       <div className="mb-3.5">
-        <h2 className="text-xl">Shared Board — Round 1</h2>
-        <p className="mt-0.5 text-sm text-ink-soft">
+        <h2 className="text-2xl">Shared Board — Round 1</h2>
+        <p className="mt-0.5 text-base text-ink-soft">
           Type notes directly, or snap a close-up photo of each column's sticky notes and let AI read them in.
         </p>
       </div>
 
       <div className="mb-4">
-        <h3 className="mb-1.5 text-sm font-semibold text-ink-soft">Timer</h3>
+        <h3 className="mb-1.5 text-base font-semibold text-ink-soft">Timer</h3>
         <TimerWidget timer={timer} timerDoc={timerDoc} />
       </div>
 
@@ -124,7 +124,7 @@ export function BoardTab({
             setCaptureColumn(null);
             fileInputRef.current?.click();
           }}
-          className="flex items-center gap-1.5 text-sm font-semibold text-ink-soft hover:text-ink disabled:opacity-50"
+          className="flex items-center gap-1.5 text-base font-semibold text-ink-soft hover:text-ink disabled:opacity-50"
         >
           <Camera size={15} />
           Snap / upload board photo
@@ -149,7 +149,7 @@ export function BoardTab({
         />
         <button
           onClick={() => setEditingColumns(true)}
-          className="flex items-center gap-1.5 text-sm font-semibold text-ink-soft hover:text-ink"
+          className="flex items-center gap-1.5 text-base font-semibold text-ink-soft hover:text-ink"
         >
           <Settings size={15} />
           Rename columns
@@ -158,7 +158,7 @@ export function BoardTab({
 
       {sortedPhotos.length > 0 && (
         <div className="mb-5">
-          <h3 className="mb-2 text-sm font-semibold text-ink-soft">Board photos ({sortedPhotos.length})</h3>
+          <h3 className="mb-2 text-base font-semibold text-ink-soft">Board photos ({sortedPhotos.length})</h3>
           <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
             {sortedPhotos.map((p) => (
               <div key={p.id} className="w-44 shrink-0 snap-start">
@@ -169,7 +169,7 @@ export function BoardTab({
                   <img src={p.dataUrl} alt={`Board photo by ${p.author}`} className="h-full w-full object-cover" />
                 </button>
                 <div className="mt-1.5 flex items-center justify-between gap-1.5">
-                  <span className="min-w-0 truncate text-xs text-ink-faint">
+                  <span className="min-w-0 truncate text-sm text-ink-faint">
                     {p.author} · {p.role === 'po' ? 'PO' : 'Team'}
                   </span>
                   <button
@@ -194,8 +194,8 @@ export function BoardTab({
           return (
             <div key={col.id} className="border-t-2 pt-3" style={{ borderColor: col.color }}>
               <div className="mb-2.5 flex items-center gap-2">
-                <h3 className="flex-1 text-sm font-semibold">{col.name}</h3>
-                <span className="text-xs text-ink-faint">{colNotes.length}</span>
+                <h3 className="flex-1 text-base font-semibold">{col.name}</h3>
+                <span className="text-sm text-ink-faint">{colNotes.length}</span>
               </div>
               <div className="mb-2 flex gap-1.5">
                 <input
@@ -206,11 +206,11 @@ export function BoardTab({
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') submitNote(col.id);
                   }}
-                  className="flex-1 rounded-lg border border-line-soft bg-surface px-2.5 py-1.5 text-sm focus:border-brand focus:outline-none"
+                  className="flex-1 rounded-lg border border-line-soft bg-surface px-2.5 py-1.5 text-base focus:border-brand focus:outline-none"
                 />
                 <button
                   onClick={() => submitNote(col.id)}
-                  className="rounded-lg bg-brand px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-strong"
+                  className="rounded-lg bg-brand px-3 py-1.5 text-base font-semibold text-white hover:bg-brand-strong"
                 >
                   +
                 </button>
@@ -221,7 +221,7 @@ export function BoardTab({
                   setCaptureColumn(col);
                   fileInputRef.current?.click();
                 }}
-                className="mb-3 flex items-center gap-1.5 text-xs font-semibold text-ink-faint hover:text-ink-soft disabled:opacity-50"
+                className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-ink-faint hover:text-ink-soft disabled:opacity-50"
               >
                 <Camera size={13} />
                 Snap / upload notes for this column
@@ -240,7 +240,7 @@ export function BoardTab({
                     />
                   ))
                 ) : (
-                  <div className="py-3 text-center text-xs text-ink-faint">No notes yet</div>
+                  <div className="py-3 text-center text-sm text-ink-faint">No notes yet</div>
                 )}
               </div>
             </div>
@@ -379,7 +379,7 @@ function ColumnEditorModal({
               type="text"
               value={names[c.id] || ''}
               onChange={(e) => setNames((n) => ({ ...n, [c.id]: e.target.value }))}
-              className="flex-1 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-sm"
+              className="flex-1 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-base"
             />
           </div>
         ))}
@@ -436,14 +436,14 @@ function NoteReviewModal({
                 onChange={(e) =>
                   setDraftRows((rs) => rs.map((row, idx) => (idx === i ? { ...row, text: e.target.value } : row)))
                 }
-                className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-sm"
+                className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-base"
               />
               <select
                 value={r.column}
                 onChange={(e) =>
                   setDraftRows((rs) => rs.map((row, idx) => (idx === i ? { ...row, column: e.target.value } : row)))
                 }
-                className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-sm"
+                className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-base"
               >
                 {columns.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -503,14 +503,14 @@ function ManualEntryModal({
                 onChange={(e) =>
                   setDraftRows((rs) => rs.map((row, idx) => (idx === i ? { ...row, text: e.target.value } : row)))
                 }
-                className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-sm"
+                className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-base"
               />
               <select
                 value={r.column}
                 onChange={(e) =>
                   setDraftRows((rs) => rs.map((row, idx) => (idx === i ? { ...row, column: e.target.value } : row)))
                 }
-                className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-sm"
+                className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-base"
               >
                 {columns.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -531,7 +531,7 @@ function ManualEntryModal({
         ))}
         <button
           onClick={() => setDraftRows((rs) => [...rs, { text: '', column: defaultColumnId || columns[0]?.id || '' }])}
-          className="self-start rounded-lg border border-line bg-surface px-3 py-1.5 text-sm font-semibold text-ink hover:border-ink-faint"
+          className="self-start rounded-lg border border-line bg-surface px-3 py-1.5 text-base font-semibold text-ink hover:border-ink-faint"
         >
           + Add another note
         </button>

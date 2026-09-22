@@ -9,7 +9,7 @@ export function PreviousRetroPanel({ previous }: PreviousRetroPanelProps) {
 
   if (!config) {
     return (
-      <div className="mb-6 border-l-2 border-line-soft pl-4 text-sm text-ink-faint">
+      <div className="mb-6 border-l-2 border-line-soft pl-4 text-base text-ink-faint">
         Linked to previous retro <b className="text-ink-soft">#{roomId}</b> — waiting for its data to load…
       </div>
     );
@@ -22,12 +22,12 @@ export function PreviousRetroPanel({ previous }: PreviousRetroPanelProps) {
     <div className="mb-6 border-l-2 border-brand pl-4">
       <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <div className="text-[11px] font-bold uppercase tracking-wide text-brand-strong">
+          <div className="text-xs font-bold uppercase tracking-wide text-brand-strong">
             Previous retro · check actions
           </div>
-          <h3 className="text-base font-semibold">{config.title}</h3>
+          <h3 className="text-lg font-semibold">{config.title}</h3>
         </div>
-        <span className="text-xs font-semibold text-ink-soft">
+        <span className="text-sm font-semibold text-ink-soft">
           {actions.length === 0
             ? 'No actions logged'
             : openCount
@@ -49,7 +49,7 @@ export function PreviousRetroPanel({ previous }: PreviousRetroPanelProps) {
                 onChange={(e) => toggleAction(a.id, e.target.checked)}
                 className="h-4 w-4 accent-brand"
               />
-              <span className={`flex-1 text-sm ${a.done ? 'text-ink-faint line-through' : ''}`}>
+              <span className={`flex-1 text-base ${a.done ? 'text-ink-faint line-through' : ''}`}>
                 {a.text}
                 {a.owner && (
                   <>
@@ -58,12 +58,12 @@ export function PreviousRetroPanel({ previous }: PreviousRetroPanelProps) {
                   </>
                 )}
               </span>
-              {a.dueDate && <span className="font-mono text-[11px] text-ink-faint">{a.dueDate}</span>}
+              {a.dueDate && <span className="font-mono text-xs text-ink-faint">{a.dueDate}</span>}
             </label>
           ))}
         </div>
       ) : (
-        <div className="text-sm text-ink-soft">No action items were logged last time.</div>
+        <div className="text-base text-ink-soft">No action items were logged last time.</div>
       )}
     </div>
   );

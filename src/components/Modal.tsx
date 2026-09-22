@@ -29,8 +29,8 @@ export function Modal({ title, subtitle, actions, onDismiss, children }: ModalPr
       }}
     >
       <div className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl bg-surface p-5 shadow-lg">
-        <h3 className="font-display text-lg font-semibold text-ink">{title}</h3>
-        {subtitle && <p className="mt-1 text-xs text-ink-soft">{subtitle}</p>}
+        <h3 className="font-display text-xl font-semibold text-ink">{title}</h3>
+        {subtitle && <p className="mt-1 text-sm text-ink-soft">{subtitle}</p>}
         <div className="mt-3">{children}</div>
         <div className="mt-4 flex justify-end gap-2">
           {actions.map((a) => (
@@ -39,8 +39,8 @@ export function Modal({ title, subtitle, actions, onDismiss, children }: ModalPr
               onClick={a.onClick}
               className={
                 a.primary
-                  ? 'rounded-lg bg-brand px-3.5 py-2 text-sm font-semibold text-white hover:bg-brand-strong'
-                  : 'rounded-lg border border-line bg-surface px-3.5 py-2 text-sm font-semibold text-ink hover:border-ink-faint'
+                  ? 'rounded-lg bg-brand px-3.5 py-2 text-base font-semibold text-white hover:bg-brand-strong'
+                  : 'rounded-lg border border-line bg-surface px-3.5 py-2 text-base font-semibold text-ink hover:border-ink-faint'
               }
             >
               {a.label}

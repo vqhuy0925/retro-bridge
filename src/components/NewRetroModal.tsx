@@ -45,7 +45,7 @@ export function NewRetroModal({ onCreate, onJoin, onCancel }: NewRetroModalProps
       actions={onCancel ? [{ label: 'Cancel', onClick: onCancel }] : []}
       onDismiss={onCancel ?? (() => {})}
     >
-      <div className="mb-4 flex rounded-full bg-line-soft p-0.5 text-sm font-semibold">
+      <div className="mb-4 flex rounded-full bg-line-soft p-0.5 text-base font-semibold">
         <button
           onClick={() => setMode('create')}
           className={`flex-1 rounded-full py-1.5 ${mode === 'create' ? 'bg-brand text-white' : 'text-ink-soft'}`}
@@ -64,7 +64,7 @@ export function NewRetroModal({ onCreate, onJoin, onCancel }: NewRetroModalProps
         {mode === 'create' ? (
           <div className="space-y-3">
             <div>
-              <label className="mb-1 block text-xs font-semibold text-ink-soft">Retro topic</label>
+              <label className="mb-1 block text-sm font-semibold text-ink-soft">Retro topic</label>
               <div className="flex gap-2">
                 <input
                   autoFocus
@@ -74,18 +74,18 @@ export function NewRetroModal({ onCreate, onJoin, onCancel }: NewRetroModalProps
                     if (e.key === 'Enter') submitCreate();
                   }}
                   placeholder="e.g. Sprint 26.09.B Retro"
-                  className="w-full min-w-0 rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-brand focus:outline-none"
+                  className="w-full min-w-0 rounded-lg border border-line bg-surface px-3 py-2 text-base text-ink focus:border-brand focus:outline-none"
                 />
                 <button
                   onClick={submitCreate}
-                  className="shrink-0 rounded-lg bg-brand px-3.5 py-2 text-sm font-semibold text-white hover:bg-brand-strong"
+                  className="shrink-0 rounded-lg bg-brand px-3.5 py-2 text-base font-semibold text-white hover:bg-brand-strong"
                 >
                   Create
                 </button>
               </div>
             </div>
 
-            <label className="flex items-center gap-2 text-xs text-ink-soft">
+            <label className="flex items-center gap-2 text-sm text-ink-soft">
               <input
                 type="checkbox"
                 checked={linkPrevious}
@@ -102,9 +102,9 @@ export function NewRetroModal({ onCreate, onJoin, onCancel }: NewRetroModalProps
                   onChange={(e) => setPreviousRoomId(e.target.value.replace(/\D/g, '').slice(0, 4))}
                   inputMode="numeric"
                   placeholder="Previous retro's room code, e.g. 1234"
-                  className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm tracking-[0.2em] text-ink focus:border-brand focus:outline-none"
+                  className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-base tracking-[0.2em] text-ink focus:border-brand focus:outline-none"
                 />
-                <p className="mt-1 text-[11px] text-ink-faint">
+                <p className="mt-1 text-xs text-ink-faint">
                   The team can check those actions off before diving into this topic.
                 </p>
               </div>
@@ -112,7 +112,7 @@ export function NewRetroModal({ onCreate, onJoin, onCancel }: NewRetroModalProps
           </div>
         ) : (
           <div>
-            <label className="mb-1 block text-xs font-semibold text-ink-soft">Room code</label>
+            <label className="mb-1 block text-sm font-semibold text-ink-soft">Room code</label>
             <div className="flex gap-2">
               <input
                 autoFocus
@@ -123,11 +123,11 @@ export function NewRetroModal({ onCreate, onJoin, onCancel }: NewRetroModalProps
                 }}
                 inputMode="numeric"
                 placeholder="1234"
-                className="w-full min-w-0 rounded-lg border border-line bg-surface px-3 py-2 text-center text-sm tracking-[0.3em] text-ink focus:border-brand focus:outline-none"
+                className="w-full min-w-0 rounded-lg border border-line bg-surface px-3 py-2 text-center text-base tracking-[0.3em] text-ink focus:border-brand focus:outline-none"
               />
               <button
                 onClick={submitJoin}
-                className="shrink-0 rounded-lg bg-brand px-3.5 py-2 text-sm font-semibold text-white hover:bg-brand-strong"
+                className="shrink-0 rounded-lg bg-brand px-3.5 py-2 text-base font-semibold text-white hover:bg-brand-strong"
               >
                 Join
               </button>
