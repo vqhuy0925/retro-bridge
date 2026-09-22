@@ -3,7 +3,7 @@ import { Camera, ChevronLeft, ChevronRight, Settings, X } from 'lucide-react';
 import { NoteCard } from './NoteCard';
 import { Modal } from './Modal';
 import { dismissToast, showToast } from '../hooks/useToast';
-import { aiErrorCopy, createPhotoThumbnail, extractNotesFromPhoto, AiExtractError } from '../services/aiExtract';
+import { aiErrorCopy, createPhotoThumbnail, extractNotesFromPhoto, providerLabel, AiExtractError } from '../services/aiExtract';
 import type { CollectionStore, DocStore } from '../services/store';
 import type { BoardPhoto, Column, ExtractedNoteRow, Note, RetroConfig, Role } from '../types';
 
@@ -59,11 +59,12 @@ export function BoardTab({ config, configDoc, notes, notesCol, photos, photosCol
     setAnalyzing(true);
     const analyzingToast = showToast('Analyzing photo…', true);
     try {
-      const rows = await extractNotesFromPhoto(file, config.columns);
+      const { rows, provider } = await extractNotesFromPhoto(file, config.columns);
       if (!rows.length) {
         showToast(aiErrorCopy('empty'));
       } else {
         setReviewRows(rows);
+        showToast(`Extracted ${rows.length} note${rows.length === 1 ? '' : 's'} via ${providerLabel(provider)}.`);
       }
     } catch (err) {
       const code = err instanceof AiExtractError ? err.code : 'unknown';

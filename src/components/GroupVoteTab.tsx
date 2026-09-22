@@ -3,7 +3,7 @@ import { Camera, Minus, Plus, X } from 'lucide-react';
 import { Modal } from './Modal';
 import { VOTE_BUDGET } from '../data/defaults';
 import { dismissToast, showToast } from '../hooks/useToast';
-import { AiExtractError, aiErrorCopy, extractGroupsFromPhoto } from '../services/aiExtract';
+import { AiExtractError, aiErrorCopy, extractGroupsFromPhoto, providerLabel } from '../services/aiExtract';
 import type { CollectionStore } from '../services/store';
 import type { Column, ExtractedGroup, Group, Note, Role, Vote } from '../types';
 
@@ -64,9 +64,13 @@ export function GroupVoteTab({
     setAnalyzing(true);
     const analyzingToast = showToast('Analyzing photo…', true);
     try {
-      const extracted = await extractGroupsFromPhoto(file, columns);
-      if (!extracted.length) showToast(aiErrorCopy('empty'));
-      else setReviewGroups(extracted);
+      const { groups: extracted, provider } = await extractGroupsFromPhoto(file, columns);
+      if (!extracted.length) {
+        showToast(aiErrorCopy('empty'));
+      } else {
+        setReviewGroups(extracted);
+        showToast(`Extracted ${extracted.length} group${extracted.length === 1 ? '' : 's'} via ${providerLabel(provider)}.`);
+      }
     } catch (err) {
       const code = err instanceof AiExtractError ? err.code : 'unknown';
       showToast(aiErrorCopy(code, err instanceof AiExtractError ? err.message : undefined));

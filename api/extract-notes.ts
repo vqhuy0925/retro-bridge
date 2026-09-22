@@ -204,7 +204,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           column: String((item as { column?: unknown })?.column || columns[0]?.id || ''),
         }))
         .filter((r) => r.text);
-      res.status(200).json({ ok: true, rows });
+      res.status(200).json({ ok: true, rows, provider: 'gemini' });
     } else {
       const groups = parsed
         .map((item) => ({
@@ -214,7 +214,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
             : [],
         }))
         .filter((g) => g.items.length > 0);
-      res.status(200).json({ ok: true, groups });
+      res.status(200).json({ ok: true, groups, provider: 'gemini' });
     }
   } catch (err) {
     console.error('extract-notes failed, trying Cloud Vision fallback', err);
@@ -222,11 +222,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       const paragraphs = await extractWithCloudVision(body.imageBase64, body.mimeType);
       if (body.mode === 'notes') {
         const rows = paragraphs.map((p) => ({ text: p.text, column: paragraphColumn(p.xCenterRatio, columns) }));
-        res.status(200).json({ ok: true, rows });
+        res.status(200).json({ ok: true, rows, provider: 'cloud-vision' });
       } else {
         const items = paragraphs.map((p) => p.text);
         const groups = items.length ? [{ label: 'Ungrouped (Cloud Vision fallback)', items }] : [];
-        res.status(200).json({ ok: true, groups });
+        res.status(200).json({ ok: true, groups, provider: 'cloud-vision' });
       }
       return;
     } catch (fallbackErr) {

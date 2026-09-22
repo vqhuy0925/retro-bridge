@@ -1,5 +1,7 @@
 import type { Column, ExtractedGroup, ExtractedNoteRow } from '../types';
 
+export type AiProvider = 'gemini' | 'cloud-vision';
+
 export class AiExtractError extends Error {
   code: string;
   constructor(code: string, message: string) {
@@ -109,7 +111,7 @@ async function callExtractApi(
   mode: 'notes' | 'groups',
   file: File,
   columns: Column[],
-): Promise<unknown> {
+): Promise<{ data: unknown; provider: AiProvider }> {
   const resized = await resizeForUpload(file);
   const imageBase64 = await blobToBase64(resized);
   if (imageBase64.length > MAX_BASE64_BYTES) {
@@ -136,7 +138,7 @@ async function callExtractApi(
     throw new AiExtractError('too_large', 'That photo is too large even after resizing — try a closer, less busy shot.');
   }
 
-  let body: { ok?: boolean; error?: string; rows?: unknown; groups?: unknown };
+  let body: { ok?: boolean; error?: string; rows?: unknown; groups?: unknown; provider?: string };
   try {
     body = await res.json();
   } catch {
@@ -146,25 +148,30 @@ async function callExtractApi(
   if (!res.ok || !body.ok) {
     throw new AiExtractError('server', body.error || `AI service error (${res.status}).`);
   }
-  return mode === 'notes' ? body.rows : body.groups;
+  const provider: AiProvider = body.provider === 'cloud-vision' ? 'cloud-vision' : 'gemini';
+  return { data: mode === 'notes' ? body.rows : body.groups, provider };
 }
 
 export async function extractNotesFromPhoto(
   file: File,
   columns: Column[],
-): Promise<ExtractedNoteRow[]> {
-  const rows = (await callExtractApi('notes', file, columns)) as ExtractedNoteRow[];
-  if (!Array.isArray(rows)) throw new AiExtractError('invalid_response', 'Unexpected response shape.');
-  return rows;
+): Promise<{ rows: ExtractedNoteRow[]; provider: AiProvider }> {
+  const { data, provider } = await callExtractApi('notes', file, columns);
+  if (!Array.isArray(data)) throw new AiExtractError('invalid_response', 'Unexpected response shape.');
+  return { rows: data as ExtractedNoteRow[], provider };
 }
 
 export async function extractGroupsFromPhoto(
   file: File,
   columns: Column[],
-): Promise<ExtractedGroup[]> {
-  const groups = (await callExtractApi('groups', file, columns)) as ExtractedGroup[];
-  if (!Array.isArray(groups)) throw new AiExtractError('invalid_response', 'Unexpected response shape.');
-  return groups;
+): Promise<{ groups: ExtractedGroup[]; provider: AiProvider }> {
+  const { data, provider } = await callExtractApi('groups', file, columns);
+  if (!Array.isArray(data)) throw new AiExtractError('invalid_response', 'Unexpected response shape.');
+  return { groups: data as ExtractedGroup[], provider };
+}
+
+export function providerLabel(provider: AiProvider): string {
+  return provider === 'cloud-vision' ? 'Cloud Vision (fallback)' : 'Gemini';
 }
 
 // `message` is the specific reason the server sent back (e.g. which
