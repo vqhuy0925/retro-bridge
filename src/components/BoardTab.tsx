@@ -113,14 +113,8 @@ export function BoardTab({
       </div>
 
       <div className="mb-4">
-        <TimerWidget
-          timer={timer}
-          timerDoc={timerDoc}
-          presets={[
-            { label: 'Silent writing', minutes: 7 },
-            { label: 'Presenting', minutes: 3 },
-          ]}
-        />
+        <h3 className="mb-1.5 text-sm font-semibold text-ink-soft">Timer</h3>
+        <TimerWidget timer={timer} timerDoc={timerDoc} />
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-2.5">

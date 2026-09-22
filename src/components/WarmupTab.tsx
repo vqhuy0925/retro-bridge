@@ -43,7 +43,8 @@ export function WarmupTab({ warmup, warmupDoc, timer, timerDoc, previous }: Warm
       </div>
 
       <div className="mb-3.5">
-        <TimerWidget timer={timer} timerDoc={timerDoc} presets={[{ label: 'Warm-up', minutes: 15 }]} />
+        <h3 className="mb-1.5 text-sm font-semibold text-ink-soft">Timer</h3>
+        <TimerWidget timer={timer} timerDoc={timerDoc} />
       </div>
 
       <div className="grid grid-cols-[repeat(auto-fit,minmax(230px,1fr))] gap-3.5">

@@ -74,11 +74,13 @@ export interface ActionItem {
 
 export type TabId = 'warmup' | 'board' | 'group' | 'wrap';
 
-/** A shared countdown any client can start — used for the writing/presenting/warm-up phases. */
+/** A shared countdown any client can set/start/pause — the whole room sees the same clock. */
 export interface TimerState {
-  label: string;
-  durationSec: number;
-  /** Timestamp the countdown reaches zero, or null while idle. */
+  /** The duration "Reset" returns to, in seconds — set by whoever last typed a time in. */
+  setSec: number;
+  /** Time left, in seconds, while idle or paused (ignored while running). */
+  remainingSec: number;
+  /** Timestamp the countdown reaches zero, or null while idle/paused. */
   endsAt: number | null;
 }
 

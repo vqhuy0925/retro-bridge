@@ -1,23 +1,27 @@
 import { useEffect, useState } from 'react';
-import { Play, RotateCcw } from 'lucide-react';
+import { Pause, Play, RotateCcw } from 'lucide-react';
 import type { DocStore } from '../services/store';
 import type { TimerState } from '../types';
 
 interface TimerWidgetProps {
   timer: TimerState;
   timerDoc: DocStore<TimerState>;
-  presets: { label: string; minutes: number }[];
 }
 
 function format(totalSeconds: number): string {
-  const s = Math.max(0, Math.ceil(totalSeconds));
+  const s = Math.max(0, Math.round(totalSeconds));
   const m = Math.floor(s / 60);
   const r = s % 60;
-  return `${m}:${String(r).padStart(2, '0')}`;
+  return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
 }
 
-/** A countdown synced via Firestore/localStorage so the whole team and the remote PO see the same clock. */
-export function TimerWidget({ timer, timerDoc, presets }: TimerWidgetProps) {
+function clampDigits(raw: string, max: number): string {
+  const digits = raw.replace(/\D/g, '').slice(0, 2);
+  return digits === '' ? '' : String(Math.min(Number(digits), max));
+}
+
+/** A plain set-your-own-time countdown (like the Windows Clock timer) synced to the whole room. */
+export function TimerWidget({ timer, timerDoc }: TimerWidgetProps) {
   const running = timer.endsAt != null;
   const [now, setNow] = useState(Date.now());
 
@@ -27,50 +31,98 @@ export function TimerWidget({ timer, timerDoc, presets }: TimerWidgetProps) {
     return () => clearInterval(id);
   }, [running]);
 
-  const remaining = running ? (timer.endsAt! - now) / 1000 : timer.durationSec;
+  const remaining = running ? (timer.endsAt! - now) / 1000 : timer.remainingSec;
   const expired = running && remaining <= 0;
 
-  function start(minutes: number, label: string) {
-    timerDoc.set({ label, durationSec: minutes * 60, endsAt: Date.now() + minutes * 60 * 1000 });
+  const [minutesDraft, setMinutesDraft] = useState(String(Math.floor(timer.remainingSec / 60)));
+  const [secondsDraft, setSecondsDraft] = useState(String(timer.remainingSec % 60).padStart(2, '0'));
+
+  // Keep the editable fields in sync with the shared value while idle (e.g. someone else set it).
+  useEffect(() => {
+    if (running) return;
+    setMinutesDraft(String(Math.floor(timer.remainingSec / 60)));
+    setSecondsDraft(String(timer.remainingSec % 60).padStart(2, '0'));
+  }, [timer.remainingSec, running]);
+
+  function commitDraft() {
+    const total = Math.max(0, Math.min(99 * 60 + 59, (Number(minutesDraft) || 0) * 60 + (Number(secondsDraft) || 0)));
+    timerDoc.set({ setSec: total, remainingSec: total, endsAt: null });
+  }
+
+  function start() {
+    if (remaining <= 0) return;
+    timerDoc.set({ setSec: timer.setSec, remainingSec: timer.remainingSec, endsAt: Date.now() + remaining * 1000 });
+  }
+  function pause() {
+    timerDoc.set({ setSec: timer.setSec, remainingSec: Math.max(0, remaining), endsAt: null });
   }
   function reset() {
-    timerDoc.set({ label: timer.label, durationSec: timer.durationSec, endsAt: null });
+    timerDoc.set({ setSec: timer.setSec, remainingSec: timer.setSec, endsAt: null });
   }
 
   return (
     <div
-      className={`flex flex-wrap items-center gap-3 rounded-xl border p-3.5 ${
+      className={`flex flex-wrap items-center gap-3 rounded-xl border bg-surface p-3.5 ${
         expired ? 'border-danger' : 'border-line'
-      } bg-surface`}
+      }`}
     >
-      <div className="flex items-baseline gap-2">
-        <span className={`font-mono text-2xl font-semibold tabular-nums ${expired ? 'text-danger' : 'text-ink'}`}>
-          {format(remaining)}
+      {running ? (
+        <span className={`font-mono text-3xl font-semibold tabular-nums ${expired ? 'text-danger' : 'text-ink'}`}>
+          {expired ? "Time's up" : format(remaining)}
         </span>
-        <span className="text-xs text-ink-faint">
-          {expired ? "Time's up" : timer.label || 'No timer running'}
-        </span>
-      </div>
-      <div className="flex flex-wrap gap-1.5">
-        {presets.map((p) => (
+      ) : (
+        <div className="flex items-center gap-1.5">
+          <input
+            type="text"
+            inputMode="numeric"
+            value={minutesDraft}
+            onChange={(e) => setMinutesDraft(clampDigits(e.target.value, 99))}
+            onBlur={commitDraft}
+            onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+            aria-label="Minutes"
+            className="w-12 rounded-lg border border-line bg-surface px-1.5 py-1 text-center font-mono text-2xl font-semibold text-ink"
+          />
+          <span className="font-mono text-2xl font-semibold text-ink-faint">:</span>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={secondsDraft}
+            onChange={(e) => setSecondsDraft(clampDigits(e.target.value, 59))}
+            onBlur={commitDraft}
+            onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+            aria-label="Seconds"
+            className="w-12 rounded-lg border border-line bg-surface px-1.5 py-1 text-center font-mono text-2xl font-semibold text-ink"
+          />
+          <span className="ml-0.5 text-[11px] text-ink-faint">min : sec</span>
+        </div>
+      )}
+
+      <div className="flex gap-1.5">
+        {running ? (
           <button
-            key={p.label}
-            onClick={() => start(p.minutes, p.label)}
-            className="flex items-center gap-1 rounded-full border border-line bg-surface px-2.5 py-1 text-xs font-semibold text-ink hover:border-brand"
+            onClick={pause}
+            className="flex items-center gap-1 rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-ink hover:border-brand"
           >
-            <Play size={11} />
-            {p.label} · {p.minutes}m
+            <Pause size={12} />
+            Pause
           </button>
-        ))}
-        {running && (
+        ) : (
           <button
-            onClick={reset}
-            className="flex items-center gap-1 rounded-full border border-line bg-surface px-2.5 py-1 text-xs font-semibold text-ink hover:border-danger"
+            onClick={start}
+            disabled={remaining <= 0}
+            className="flex items-center gap-1 rounded-full bg-brand px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-strong disabled:opacity-40"
           >
-            <RotateCcw size={11} />
-            Stop
+            <Play size={12} />
+            Start
           </button>
         )}
+        <button
+          onClick={reset}
+          className="flex items-center gap-1 rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-ink hover:border-danger"
+        >
+          <RotateCcw size={12} />
+          Reset
+        </button>
       </div>
     </div>
   );

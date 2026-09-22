@@ -85,7 +85,7 @@ export default function App() {
   );
   const config = useStoreDoc<RetroConfig>(store, 'config', defaultConfig);
   const warmup = useStoreDoc<WarmupState | { gameId: '' }>(store, 'warmup', { gameId: '' });
-  const timer = useStoreDoc<TimerState>(store, 'timer', { label: '', durationSec: 0, endsAt: null });
+  const timer = useStoreDoc<TimerState>(store, 'timer', { setSec: 0, remainingSec: 0, endsAt: null });
   const notes = useStoreCollection<Note>(store, 'notes');
   const photos = useStoreCollection<BoardPhoto>(store, 'photos');
   const groups = useStoreCollection<Group>(store, 'groups');
