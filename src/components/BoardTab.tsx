@@ -1,12 +1,18 @@
 import { useMemo, useRef, useState } from 'react';
-import { Camera, ChevronLeft, ChevronRight, Pencil, Settings, X } from 'lucide-react';
+import { Camera, Pencil, Settings, X } from 'lucide-react';
 import { NoteCard } from './NoteCard';
 import { Modal } from './Modal';
+import { PhotoViewer } from './PhotoViewer';
 import { TimerWidget } from './TimerWidget';
 import { dismissToast, showToast } from '../hooks/useToast';
-import { aiErrorCopy, createPhotoThumbnail, extractNotesFromPhoto, providerLabel, AiExtractError } from '../services/aiExtract';
+import { aiErrorCopy, createBoardPhoto, extractNotesFromPhoto, providerLabel, AiExtractError } from '../services/aiExtract';
 import type { CollectionStore, DocStore } from '../services/store';
 import type { BoardPhoto, Column, ExtractedNoteRow, Note, RetroConfig, Role, TimerState } from '../types';
+
+// Each board photo is its own Firestore document on the free Spark plan (see
+// createBoardPhoto in aiExtract.ts) — capping how many a room can keep around
+// bounds both storage and the read/write volume from realtime listeners.
+const MAX_BOARD_PHOTOS = 5;
 
 interface BoardTabProps {
   config: RetroConfig;
@@ -47,6 +53,16 @@ export function BoardTab({
   const [draftBrief, setDraftBrief] = useState(config.topicBrief || '');
 
   const sortedPhotos = useMemo(() => [...photos].sort((a, b) => b.createdAt - a.createdAt), [photos]);
+  const photoLimitReached = photos.length >= MAX_BOARD_PHOTOS;
+
+  function openPhotoCapture(column: Column | null) {
+    if (photoLimitReached) {
+      showToast(`This room already has ${MAX_BOARD_PHOTOS} board photos — remove one before adding another.`);
+      return;
+    }
+    setCaptureColumn(column);
+    fileInputRef.current?.click();
+  }
 
   function startEditingBrief() {
     setDraftBrief(config.topicBrief || '');
@@ -79,7 +95,7 @@ export function BoardTab({
   // either way, so the PO / remote team can see the physical board even
   // when extraction is skipped or fails.
   function savePhoto(file: File) {
-    createPhotoThumbnail(file).then((dataUrl) => {
+    createBoardPhoto(file).then((dataUrl) => {
       if (!dataUrl) return;
       photosCol.add({ dataUrl, role, author, createdAt: Date.now() });
     });
@@ -160,10 +176,7 @@ export function BoardTab({
       <div className="mb-4 flex flex-wrap items-center gap-2.5">
         <button
           disabled={analyzing}
-          onClick={() => {
-            setCaptureColumn(null);
-            fileInputRef.current?.click();
-          }}
+          onClick={() => openPhotoCapture(null)}
           className="flex items-center gap-1.5 text-base font-semibold text-ink-soft hover:text-ink disabled:opacity-50"
         >
           <Camera size={15} />
@@ -178,6 +191,10 @@ export function BoardTab({
             const file = e.target.files?.[0];
             e.target.value = '';
             if (!file) return;
+            if (photoLimitReached) {
+              showToast(`This room already has ${MAX_BOARD_PHOTOS} board photos — remove one before adding another.`);
+              return;
+            }
             if (captureColumn) {
               savePhoto(file);
               extractColumnPhoto(file, captureColumn);
@@ -198,7 +215,9 @@ export function BoardTab({
 
       {sortedPhotos.length > 0 && (
         <div className="mb-5">
-          <h3 className="mb-2 text-base font-semibold text-ink-soft">Board photos ({sortedPhotos.length})</h3>
+          <h3 className="mb-2 text-base font-semibold text-ink-soft">
+            Board photos ({sortedPhotos.length}/{MAX_BOARD_PHOTOS})
+          </h3>
           <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
             {sortedPhotos.map((p) => (
               <div key={p.id} className="w-44 shrink-0 snap-start">
@@ -257,10 +276,7 @@ export function BoardTab({
               </div>
               <button
                 disabled={analyzing}
-                onClick={() => {
-                  setCaptureColumn(col);
-                  fileInputRef.current?.click();
-                }}
+                onClick={() => openPhotoCapture(col)}
                 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-ink-faint hover:text-ink-soft disabled:opacity-50"
               >
                 <Camera size={13} />
@@ -302,34 +318,14 @@ export function BoardTab({
           const prevPhoto = idx > 0 ? sortedPhotos[idx - 1] : null;
           const nextPhoto = idx >= 0 && idx < sortedPhotos.length - 1 ? sortedPhotos[idx + 1] : null;
           return (
-            <Modal
+            <PhotoViewer
+              photo={viewingPhoto}
               title={`Photo by ${viewingPhoto.author}`}
               subtitle={`${viewingPhoto.role === 'po' ? 'PO' : 'Team'} · ${new Date(viewingPhoto.createdAt).toLocaleString()}${sortedPhotos.length > 1 ? ` · ${idx + 1} of ${sortedPhotos.length}` : ''}`}
-              onDismiss={() => setViewingPhoto(null)}
-              actions={[{ label: 'Close', onClick: () => setViewingPhoto(null) }]}
-            >
-              <div className="relative">
-                <img src={viewingPhoto.dataUrl} alt="Board photo" className="w-full rounded-lg" />
-                {prevPhoto && (
-                  <button
-                    onClick={() => setViewingPhoto(prevPhoto)}
-                    aria-label="Previous photo"
-                    className="absolute left-1.5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white hover:bg-black/60"
-                  >
-                    <ChevronLeft size={19} />
-                  </button>
-                )}
-                {nextPhoto && (
-                  <button
-                    onClick={() => setViewingPhoto(nextPhoto)}
-                    aria-label="Next photo"
-                    className="absolute right-1.5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white hover:bg-black/60"
-                  >
-                    <ChevronRight size={19} />
-                  </button>
-                )}
-              </div>
-            </Modal>
+              onClose={() => setViewingPhoto(null)}
+              onPrev={prevPhoto ? () => setViewingPhoto(prevPhoto) : undefined}
+              onNext={nextPhoto ? () => setViewingPhoto(nextPhoto) : undefined}
+            />
           );
         })()}
 

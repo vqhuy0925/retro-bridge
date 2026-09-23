@@ -20,12 +20,22 @@ const JPEG_QUALITY = 0.82;
 const MAX_BASE64_BYTES = 3.5 * 1024 * 1024;
 
 // There's no Firebase Storage in this project (it would require moving off
-// the no-billing-account Spark plan) — the display copy of a board photo is
+// the no-billing-account Spark plan) — the display copy of a photo is
 // stored inline as a data URL on its Firestore doc instead, so it has to
 // clear Firestore's 1 MiB per-document cap with real headroom to spare.
 const THUMBNAIL_MAX_DIMENSION = 1000;
 const THUMBNAIL_JPEG_QUALITY = 0.7;
 const MAX_THUMBNAIL_DATA_URL_BYTES = 700 * 1024;
+
+// A board photo is the copy the PO/team zoom into to read handwriting, and
+// (unlike the team wrap-up photo) each one is `addDoc`-ed as its own
+// Firestore document — see firestoreStore.ts's `collection()` — so it isn't
+// sharing its 1 MiB budget with any other field. Spend that budget on
+// sharpness: aim high and search downward for the best quality that still
+// clears the cap, instead of a fixed low quality that blurs text on zoom.
+const BOARD_PHOTO_MAX_DIMENSION = 1920;
+const BOARD_PHOTO_QUALITIES = [0.92, 0.88, 0.82, 0.75, 0.68, 0.6, 0.5];
+const MAX_BOARD_PHOTO_DATA_URL_BYTES = 950 * 1024;
 
 function loadImageElement(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -102,6 +112,57 @@ export async function createPhotoThumbnail(file: File): Promise<string | null> {
     const resized = await resizeImage(file, THUMBNAIL_MAX_DIMENSION, THUMBNAIL_JPEG_QUALITY);
     const dataUrl = await blobToDataUrl(resized);
     return dataUrl.length <= MAX_THUMBNAIL_DATA_URL_BYTES ? dataUrl : null;
+  } catch {
+    return null;
+  }
+}
+
+async function resizeWithQualitySearch(
+  file: File,
+  maxDimension: number,
+  qualities: number[],
+  maxDataUrlBytes: number,
+): Promise<Blob> {
+  const img = await loadImageElement(file);
+  const scale = Math.min(1, maxDimension / Math.max(img.naturalWidth, img.naturalHeight));
+  const width = Math.max(1, Math.round(img.naturalWidth * scale));
+  const height = Math.max(1, Math.round(img.naturalHeight * scale));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new AiExtractError('read_failed', 'Could not process the photo file.');
+  ctx.drawImage(img, 0, 0, width, height);
+
+  let lastBlob: Blob | null = null;
+  for (const quality of qualities) {
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
+    if (!blob) continue;
+    lastBlob = blob;
+    // Base64 inflates a blob by ~4/3 — stop as soon as that estimate clears
+    // the budget; the caller double-checks the real encoded length anyway.
+    if ((blob.size * 4) / 3 <= maxDataUrlBytes) return blob;
+  }
+  if (!lastBlob) throw new AiExtractError('read_failed', 'Could not process the photo file.');
+  return lastBlob;
+}
+
+/**
+ * Saves a board photo at the highest quality/resolution that still fits
+ * Firestore's per-document cap — see the BOARD_PHOTO_* constants above for
+ * why this can afford to be sharper than createPhotoThumbnail.
+ */
+export async function createBoardPhoto(file: File): Promise<string | null> {
+  try {
+    const blob = await resizeWithQualitySearch(
+      file,
+      BOARD_PHOTO_MAX_DIMENSION,
+      BOARD_PHOTO_QUALITIES,
+      MAX_BOARD_PHOTO_DATA_URL_BYTES,
+    );
+    const dataUrl = await blobToDataUrl(blob);
+    return dataUrl.length <= MAX_BOARD_PHOTO_DATA_URL_BYTES ? dataUrl : null;
   } catch {
     return null;
   }
