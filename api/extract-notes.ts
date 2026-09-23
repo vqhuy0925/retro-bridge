@@ -26,8 +26,10 @@ function buildPrompt(mode: 'notes' | 'groups', columns: ColumnInput[]): string {
     if (columns.length === 1) {
       return (
         `This is a close-up photo of handwritten sticky notes from the "${columns[0].name}" section of a retro board — every note in this photo belongs to that same section. ` +
-        'Read each note and transcribe the handwriting into text (keep the meaning, fix obvious spelling mistakes; one entry per sticky note, or per line if notes overlap). ' +
-        'Reply with ONLY a JSON array of strings, one per note. If no notes are readable, return [].'
+        'Each physical sticky note square is exactly one entry, even if its text wraps across two or more handwritten lines (e.g. a note reading "Only signing" on one line and "callback API" on the next is a single note: "Only signing callback API"). ' +
+        'Only produce more than one entry for a single square if it visibly contains multiple separate, unrelated notes overlapping or stacked on top of each other. ' +
+        'Read each note and transcribe the handwriting into text, joining wrapped lines back into one sentence (keep the meaning, fix obvious spelling mistakes). ' +
+        'Reply with ONLY a JSON array of strings, one per sticky note. If no notes are readable, return [].'
       );
     }
     return (
@@ -139,19 +141,29 @@ async function extractWithCloudVision(imageBase64: string): Promise<VisionParagr
   if (apiError) throw new Error(`Cloud Vision error: ${apiError}`);
   if (!page || !page.width) return [];
 
+  // A sticky note's text commonly wraps across multiple lines, and Cloud
+  // Vision can split those wrapped lines into separate "paragraphs" within
+  // the same "block" if the handwriting has loose line spacing. A block is
+  // the more reliable stand-in for "one physical note", so join all of a
+  // block's paragraphs into a single entry rather than emitting one per
+  // paragraph.
   const paragraphs: VisionParagraph[] = [];
   for (const block of page.blocks || []) {
+    const blockTexts: string[] = [];
+    const xs: number[] = [];
     for (const paragraph of block.paragraphs || []) {
       const text = (paragraph.words || [])
         .map((w) => (w.symbols || []).map((s) => s.text || '').join(''))
         .join(' ')
         .trim();
       if (!text) continue;
-      const xs = (paragraph.boundingBox?.vertices || block.boundingBox?.vertices || [])
-        .map((v) => v.x ?? 0);
-      const xCenter = xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : page.width / 2;
-      paragraphs.push({ text, xCenterRatio: xCenter / page.width });
+      blockTexts.push(text);
+      xs.push(...(paragraph.boundingBox?.vertices || []).map((v) => v.x ?? 0));
     }
+    if (!blockTexts.length) continue;
+    if (!xs.length) xs.push(...(block.boundingBox?.vertices || []).map((v) => v.x ?? 0));
+    const xCenter = xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : page.width / 2;
+    paragraphs.push({ text: blockTexts.join(' '), xCenterRatio: xCenter / page.width });
   }
   return paragraphs;
 }
