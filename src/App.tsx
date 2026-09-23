@@ -178,6 +178,8 @@ export default function App() {
           groupsCol={groupsCol}
           votes={votes}
           votesCol={votesCol}
+          photos={photos}
+          photosCol={photosCol}
           voterId={voterId}
           voterName={displayName}
           role={role}

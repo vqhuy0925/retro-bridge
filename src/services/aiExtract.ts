@@ -33,9 +33,12 @@ const MAX_THUMBNAIL_DATA_URL_BYTES = 700 * 1024;
 // sharing its 1 MiB budget with any other field. Spend that budget on
 // sharpness: aim high and search downward for the best quality that still
 // clears the cap, instead of a fixed low quality that blurs text on zoom.
-const BOARD_PHOTO_MAX_DIMENSION = 1920;
-const BOARD_PHOTO_QUALITIES = [0.92, 0.88, 0.82, 0.75, 0.68, 0.6, 0.5];
-const MAX_BOARD_PHOTO_DATA_URL_BYTES = 950 * 1024;
+const BOARD_PHOTO_MAX_DIMENSION = 3200;
+const BOARD_PHOTO_QUALITIES = [0.95, 0.9, 0.85, 0.8, 0.72, 0.6, 0.5, 0.4];
+// Firestore's hard cap is 1,048,576 bytes for the whole document; role/
+// author/createdAt add well under 1 KB, so ~24 KB of slack under that is
+// plenty of safety margin while still claiming most of the budget.
+const MAX_BOARD_PHOTO_DATA_URL_BYTES = 1000 * 1024;
 
 function loadImageElement(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -64,6 +67,8 @@ async function resizeImage(file: File, maxDimension: number, quality: number): P
   canvas.height = height;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new AiExtractError('read_failed', 'Could not process the photo file.');
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(img, 0, 0, width, height);
 
   return new Promise((resolve, reject) => {
@@ -117,6 +122,23 @@ export async function createPhotoThumbnail(file: File): Promise<string | null> {
   }
 }
 
+let webpSupportPromise: Promise<boolean> | null = null;
+
+// Feature-detect actual WebP *encoding* support — canvas.toBlob() silently
+// falls back to PNG for an unsupported type per spec, it doesn't reject, so
+// the only reliable check is to look at what type came back.
+function supportsWebpEncoding(): Promise<boolean> {
+  if (!webpSupportPromise) {
+    webpSupportPromise = new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 2;
+      canvas.height = 2;
+      canvas.toBlob((blob) => resolve(blob?.type === 'image/webp'), 'image/webp');
+    });
+  }
+  return webpSupportPromise;
+}
+
 async function resizeWithQualitySearch(
   file: File,
   maxDimension: number,
@@ -133,11 +155,22 @@ async function resizeWithQualitySearch(
   canvas.height = height;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new AiExtractError('read_failed', 'Could not process the photo file.');
+  // The canvas defaults to low-quality smoothing on some browsers, which
+  // visibly softens handwriting on a large downscale — ask for the good
+  // resampling explicitly.
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(img, 0, 0, width, height);
+
+  // WebP compresses high-contrast line art (handwriting on a flat sticky
+  // note) noticeably smaller than JPEG at the same visual quality, which
+  // buys back sharpness within the same Firestore document budget. Fall
+  // back to JPEG on browsers where WebP encoding isn't actually supported.
+  const mimeType = (await supportsWebpEncoding()) ? 'image/webp' : 'image/jpeg';
 
   let lastBlob: Blob | null = null;
   for (const quality of qualities) {
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, mimeType, quality));
     if (!blob) continue;
     lastBlob = blob;
     // Base64 inflates a blob by ~4/3 — stop as soon as that estimate clears

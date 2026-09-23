@@ -8,11 +8,7 @@ import { dismissToast, showToast } from '../hooks/useToast';
 import { aiErrorCopy, createBoardPhoto, extractNotesFromPhoto, providerLabel, AiExtractError } from '../services/aiExtract';
 import type { CollectionStore, DocStore } from '../services/store';
 import type { BoardPhoto, Column, ExtractedNoteRow, Note, RetroConfig, Role, TimerState } from '../types';
-
-// Each board photo is its own Firestore document on the free Spark plan (see
-// createBoardPhoto in aiExtract.ts) — capping how many a room can keep around
-// bounds both storage and the read/write volume from realtime listeners.
-const MAX_BOARD_PHOTOS = 5;
+import { MAX_BOARD_PHOTOS } from '../constants';
 
 interface BoardTabProps {
   config: RetroConfig;

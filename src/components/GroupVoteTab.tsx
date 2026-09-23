@@ -1,10 +1,12 @@
 import { useMemo, useRef, useState } from 'react';
-import { Camera, Minus, Plus, X } from 'lucide-react';
+import { Camera, Minus, Plus, Sparkles, X } from 'lucide-react';
 import { Modal } from './Modal';
+import { PhotoViewer } from './PhotoViewer';
 import { dismissToast, showToast } from '../hooks/useToast';
-import { AiExtractError, aiErrorCopy, extractGroupsFromPhoto, providerLabel } from '../services/aiExtract';
+import { AiExtractError, aiErrorCopy, createBoardPhoto, extractGroupsFromPhoto, providerLabel } from '../services/aiExtract';
+import { AI_GROUPING_ENABLED, MAX_BOARD_PHOTOS } from '../constants';
 import type { CollectionStore } from '../services/store';
-import type { Column, ExtractedGroup, Group, Note, Role, Vote } from '../types';
+import type { BoardPhoto, Column, ExtractedGroup, Group, Note, Role, Vote } from '../types';
 
 interface GroupVoteTabProps {
   columns: Column[];
@@ -14,6 +16,8 @@ interface GroupVoteTabProps {
   groupsCol: CollectionStore<Group>;
   votes: Vote[];
   votesCol: CollectionStore<Vote>;
+  photos: BoardPhoto[];
+  photosCol: CollectionStore<BoardPhoto>;
   voterId: string;
   voterName: string;
   role: Role;
@@ -35,6 +39,8 @@ export function GroupVoteTab({
   groupsCol,
   votes,
   votesCol,
+  photos,
+  photosCol,
   voterId,
   voterName,
   role,
@@ -45,9 +51,30 @@ export function GroupVoteTab({
   const [newGroupTitle, setNewGroupTitle] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [reviewGroups, setReviewGroups] = useState<ExtractedGroup[] | null>(null);
+  const [viewingPhoto, setViewingPhoto] = useState<BoardPhoto | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const refPhotoInputRef = useRef<HTMLInputElement>(null);
 
   const ungrouped = notes.filter((n) => !n.groupId);
+  const sortedPhotos = useMemo(() => [...photos].sort((a, b) => b.createdAt - a.createdAt), [photos]);
+  const photoLimitReached = photos.length >= MAX_BOARD_PHOTOS;
+
+  // A reference photo saved here is the same room-wide `photos` collection
+  // Board tab uses — no AI involved, just a copy the team can zoom into.
+  function saveReferencePhoto(file: File) {
+    createBoardPhoto(file).then((dataUrl) => {
+      if (!dataUrl) return;
+      photosCol.add({ dataUrl, role, author: voterName, createdAt: Date.now() });
+    });
+  }
+
+  function openReferencePhotoCapture() {
+    if (photoLimitReached) {
+      showToast(`This room already has ${MAX_BOARD_PHOTOS} board photos — remove one before adding another.`);
+      return;
+    }
+    refPhotoInputRef.current?.click();
+  }
 
   function createGroup() {
     const ids = Object.keys(selected).filter((id) => selected[id]);
@@ -157,26 +184,90 @@ export function GroupVoteTab({
             Cluster notes that share an idea, then vote on what to discuss first.
           </p>
         </div>
-        <button
-          disabled={analyzing}
-          onClick={() => fileInputRef.current?.click()}
-          className="flex items-center gap-1.5 text-base font-semibold text-ink-soft hover:text-ink disabled:opacity-50"
-        >
-          <Camera size={15} />
-          {analyzing ? 'Analyzing…' : 'Snap / upload photo of grouped ideas'}
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          hidden
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            e.target.value = '';
-            if (file) handlePhoto(file);
-          }}
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          {AI_GROUPING_ENABLED && (
+            <>
+              <button
+                disabled={analyzing}
+                onClick={() => fileInputRef.current?.click()}
+                title="Snap or upload a photo of grouped notes — AI sorts them into groups"
+                className="flex items-center gap-1.5 rounded-lg border border-line-soft px-2.5 py-1.5 text-sm font-semibold text-ink-soft hover:border-ink-faint hover:text-ink disabled:opacity-50"
+              >
+                <Sparkles size={14} />
+                {analyzing ? 'Analyzing…' : 'AI grouping'}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = '';
+                  if (file) handlePhoto(file);
+                }}
+              />
+            </>
+          )}
+          <button
+            onClick={openReferencePhotoCapture}
+            title="Snap or upload a reference photo — no AI, just saved for the team to view"
+            className="flex items-center gap-1.5 rounded-lg border border-line-soft px-2.5 py-1.5 text-sm font-semibold text-ink-soft hover:border-ink-faint hover:text-ink"
+          >
+            <Camera size={14} />
+            Add photo
+          </button>
+          <input
+            ref={refPhotoInputRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = '';
+              if (!file) return;
+              if (photoLimitReached) {
+                showToast(`This room already has ${MAX_BOARD_PHOTOS} board photos — remove one before adding another.`);
+                return;
+              }
+              saveReferencePhoto(file);
+              showToast('Saved board photo.');
+            }}
+          />
+        </div>
       </div>
+
+      {sortedPhotos.length > 0 && (
+        <div className="mb-5">
+          <h3 className="mb-2 text-base font-semibold text-ink-soft">
+            Board photos ({sortedPhotos.length}/{MAX_BOARD_PHOTOS})
+          </h3>
+          <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
+            {sortedPhotos.map((p) => (
+              <div key={p.id} className="w-44 shrink-0 snap-start">
+                <button
+                  onClick={() => setViewingPhoto(p)}
+                  className="block aspect-[4/3] w-full overflow-hidden rounded-lg bg-line-soft"
+                >
+                  <img src={p.dataUrl} alt={`Board photo by ${p.author}`} className="h-full w-full object-cover" />
+                </button>
+                <div className="mt-1.5 flex items-center justify-between gap-1.5">
+                  <span className="min-w-0 truncate text-sm text-ink-faint">
+                    {p.author} · {p.role === 'po' ? 'PO' : 'Team'}
+                  </span>
+                  <button
+                    onClick={() => photosCol.remove(p.id)}
+                    aria-label="Remove photo"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink-faint hover:bg-line-soft hover:text-danger"
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 items-start gap-5 md:grid-cols-[1.1fr_1fr]">
         <div>
@@ -318,7 +409,7 @@ export function GroupVoteTab({
         </div>
       </div>
 
-      {reviewGroups && (
+      {AI_GROUPING_ENABLED && reviewGroups && (
         <Modal
           title="Review groups from photo"
           subtitle="Each group creates new notes (if needed) and bundles them together for voting."
@@ -342,6 +433,23 @@ export function GroupVoteTab({
           </div>
         </Modal>
       )}
+
+      {viewingPhoto &&
+        (() => {
+          const idx = sortedPhotos.findIndex((p) => p.id === viewingPhoto.id);
+          const prevPhoto = idx > 0 ? sortedPhotos[idx - 1] : null;
+          const nextPhoto = idx >= 0 && idx < sortedPhotos.length - 1 ? sortedPhotos[idx + 1] : null;
+          return (
+            <PhotoViewer
+              photo={viewingPhoto}
+              title={`Photo by ${viewingPhoto.author}`}
+              subtitle={`${viewingPhoto.role === 'po' ? 'PO' : 'Team'} · ${new Date(viewingPhoto.createdAt).toLocaleString()}${sortedPhotos.length > 1 ? ` · ${idx + 1} of ${sortedPhotos.length}` : ''}`}
+              onClose={() => setViewingPhoto(null)}
+              onPrev={prevPhoto ? () => setViewingPhoto(prevPhoto) : undefined}
+              onNext={nextPhoto ? () => setViewingPhoto(nextPhoto) : undefined}
+            />
+          );
+        })()}
     </section>
   );
 }
