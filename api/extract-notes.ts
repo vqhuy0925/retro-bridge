@@ -26,10 +26,13 @@ function buildPrompt(mode: 'notes' | 'groups', columns: ColumnInput[]): string {
     if (columns.length === 1) {
       return (
         `This is a close-up photo of handwritten sticky notes from the "${columns[0].name}" section of a retro board — every note in this photo belongs to that same section. ` +
-        'Each physical sticky note square is exactly one entry, even if its text wraps across two or more handwritten lines (e.g. a note reading "Only signing" on one line and "callback API" on the next is a single note: "Only signing callback API"). ' +
-        'Only produce more than one entry for a single square if it visibly contains multiple separate, unrelated notes overlapping or stacked on top of each other. ' +
-        'Read each note and transcribe the handwriting into text, joining wrapped lines back into one sentence (keep the meaning, fix obvious spelling mistakes). ' +
-        'Reply with ONLY a JSON array of strings, one per sticky note. If no notes are readable, return [].'
+        'First, look only at the paper: count the distinct physical sticky-note squares you can see by their edges and color, ignoring the handwriting entirely for this step. ' +
+        'That count is the exact number of entries you must output — one string per square, no more and no fewer. ' +
+        'A single square very often has its text spread across two, three, or even four handwritten lines simply because the words did not fit on one line — that is normal and does NOT mean there are multiple notes. ' +
+        'Join every line inside one square back into a single string in reading order (top line first), even if the joined result reads like more than one sentence or clause (for example, a square with "Screams" then "backend" then "Fidentity integrate" then "CT" on four separate lines is ONE entry: "Screams backend Fidentity integrate CT"). ' +
+        'Never split one square into multiple entries just because its text has a line break, punctuation, or looks like separate thoughts — only ever split when you can see two visually separate pieces of paper overlapping or stacked on top of each other. ' +
+        'Transcribe the handwriting into text, fixing obvious spelling mistakes but keeping the meaning. ' +
+        'Reply with ONLY a JSON array of strings, one per physical square. If no notes are readable, return [].'
       );
     }
     return (
